@@ -1,0 +1,15 @@
+# Paths to ignore
+\resources
+
+# File types to ignore
+*.pdf
+*.doc
+*.docx
+*.png
+*.jpeg
+*.ai
+*.dwg
+*.fig
+*.ppt
+*.pptx
+
