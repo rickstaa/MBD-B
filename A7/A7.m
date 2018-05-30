@@ -90,7 +90,7 @@ legend('Crank 2 (\phi_2)','Rocker 4 (\phi_4)','Connecting bar 5 (\phi_5)','Locat
 v_slider_rel = xp(2:end,4).*cos(q_RK4(3:end,3)) + xp(2:end,5).*sin(q_RK4(3:end,3));
 
 figure;
-plot(t_RK4,xdp_RK4(:,end),'linewidth',1.5); 
+plot(t_RK4,xdp_RK4(:,end),'linewidth',1.5);
 set(gca,'fontsize',18);
 xlabel('Time [s]');
 ylabel('Acceleration slider 6 [m/s^2]');
@@ -98,7 +98,7 @@ title('Acceleration slider 6');
 legend('acceleration slider 6','Location', 'Best');
 
 figure;
-plot(t_RK4,x_RK4(:,end),'linewidth',1.5); 
+plot(t_RK4,x_RK4(:,end),'linewidth',1.5);
 set(gca,'fontsize',18);
 xlabel('Time [s]');
 ylabel('position slider 6 [m]');
@@ -106,14 +106,14 @@ title('position slider 6');
 legend('position slider 6','Location', 'Best');
 
 figure;
-plot(t_RK4(4:end),xp(3:end,end),'linewidth',1.5); 
+plot(t_RK4(4:end),xp(3:end,end),'linewidth',1.5);
 set(gca,'fontsize',18);
 xlabel('Time [s]');
 ylabel('velocity slider 6 [m]');
 title('velocity slider 6');
 legend('velocity slider 6','Location', 'Best');
 
-plot(t_RK4(4:end),v_slider_rel(2:end),'linewidth',1.5); 
+plot(t_RK4(4:end),v_slider_rel(2:end),'linewidth',1.5);
 set(gca,'fontsize',18);
 xlabel('Time [s]');
 ylabel('Velocity [m/s]');
@@ -127,14 +127,14 @@ set(gca,'fontsize',18);
 xlabel('Time [s]');
 ylabel('Force [N]');
 title('Reaction Forces [N]');
-legend('slider 6 on ground','slider 3 on rocker 4','Location', 'Best') 
+legend('slider 6 on ground','slider 3 on rocker 4','Location', 'Best')
 
 %% FUNCTIONS
 
 %% Runge-Kuta numerical intergration function
 % This function calculates the motion of the system by means of a
-% Runge-Kuta numerical intergration. This function takes as inputs the 
-% parameters of the system (parms), the EOM of the system (parms.EOM) 
+% Runge-Kuta numerical intergration. This function takes as inputs the
+% parameters of the system (parms), the EOM of the system (parms.EOM)
 % and the initial state.
 function [t,q,x,xdp] = RK4_custom(EOM,q0,parms)
 
@@ -169,36 +169,36 @@ while abs(q(ii,1)) < (4*pi)
     
     % Save reaction forces and current derivative in state
     q(ii,end-4:end)   = q_now_p;
-   
+    
     % Save full state back in q array
     q         = [q;[q_next 0 0 0 0 0]];
     
     % Correct for intergration drift
     q_now_tmp = q(ii+1,:);
-    [q_new,error] = gauss_newton(q_now_tmp,parms);  
+    [q_new,error] = gauss_newton(q_now_tmp,parms);
     
     % Update the second derivative and the constraint forces
-    q_new_tmp        = num2cell(q(ii,1:end-5),1);
+    q_new_tmp         = num2cell(q(ii,1:end-5),1);
     q_update          = feval(EOM,q_new_tmp{:}).';
     
     % Overwrite position coordinates
     q(ii+1,:)       = [q_new(1:6) q_update];
     
     % Create time array
-t                   = [t;t(ii)+parms.h];          % Perform Gauss-Newton drift correction
-ii                  = ii + 1;                                              % Append counter
-t(ii)
-q(ii,1)
-
-% Calculate COM coordinates
-% Calculate COM coordinates
-x_tmp   = feval(parms.X_handle,q_new_tmp{1:3}).';
-xdp_tmp = feval(parms.Xp_handle,q_new_tmp{:}).';
-
-% Save x in state
-x       = [x;x_tmp];
-xdp     = [xdp;xdp_tmp];
-
+    t                   = [t;t(ii)+parms.h];                                   % Perform Gauss-Newton drift correction
+    ii                  = ii + 1;                                              % Append counter
+    t(ii)
+    q(ii,1)
+    
+    % Calculate COM coordinates
+    % Calculate COM coordinates
+    x_tmp   = feval(parms.X_handle,q_new_tmp{1:3}).';
+    xdp_tmp = feval(parms.Xp_handle,q_new_tmp{:}).';
+    
+    % Save x in state
+    x       = [x;x_tmp];
+    xdp     = [xdp;xdp_tmp];
+    
 end
 end
 
@@ -210,8 +210,8 @@ q_now_tmp       = num2cell(q,1);
 
 % Calculate the two needed constraints
 C               = [parms.O4A*cos(q(2))+parms.O2A*cos(q(1))           ...
-                   parms.O4B*sin(q(2))+parms.BC*sin(q(3))-parms.Yc];    
- 
+    parms.O4B*sin(q(2))+parms.BC*sin(q(3))-parms.Yc];
+
 C_test          = feval(parms.C_handle,q_now_tmp{1:3}).';
 
 % Calculate constraint derivative
@@ -232,7 +232,7 @@ n_iter          = 0;                                                            
 
 % Solve non-linear constraint least-square problem
 while (max(abs(C)) > parms.tol)&& (n_iter < parms.nmax)
-    q_tmp           = q(1:3);    
+    q_tmp           = q(1:3);
     n_iter = n_iter + 1;
     q_del  = Cd*inv(Cd.'*Cd)*-C.';
     q(1:3) = q_tmp+ q_del.';
@@ -285,7 +285,7 @@ x               = [phi2;x3;y3;phi4;x4;y4;phi4;x5;y5;phi5;x6];
 
 % Calculate the two needed constraints
 C               = [parms.O4A*cos(phi4)+parms.O2A*cos(phi2)           ...
-                   parms.O4B*sin(phi4)+parms.BC*sin(phi5)-parms.Yc];
+    parms.O4B*sin(phi4)+parms.BC*sin(phi5)-parms.Yc];
 
 % Compute the jacobian of state and constraints
 Jx_q            = simplify(jacobian(x,q.'));
