@@ -37,7 +37,7 @@ parms.syms.phi2d             = phi2d;
 
 %% -- Set model/simulation parameters and initial states --
 %% Intergration parameters
-sim_time                    = 100;                                        % Intergration time
+sim_time                    = 100;                                      % Intergration time
 parms.h                     = 1e-3;                                     % Intergration step size
 parms.tol                   = 1e-12;                                    % Intergration constraint error tolerance
 parms.nmax                  = 10;                                       % Maximum number of Gauss-Newton drift correction iterations
@@ -55,6 +55,9 @@ parms.m2                    = 0;                                        % Body 2
 parms.J1                    = 0.1;                                      % Moment of inertia body 1 [kgm^2]
 parms.J2                    = 0;                                        % Moment of inertia body 2 [kgm^2]
 
+% Create mass matrix (Segment 1 and 2)
+parms.M                     = diag([parms.m1,parms.m1,parms.J1,parms.m2,parms.m2,parms.J2]);
+
 % Torque and force variables (See assignment)
 parms.M0                    = 0.1;
 parms.omega                 = pi;
@@ -63,19 +66,40 @@ parms.omega                 = pi;
 % Gravity
 parms.g                     = 9.81;                                     % [parms.m/s^2]
 
-%% Give generalised coordinates
+% %% states for Question 1
+% x1_0                        = parms.a;
+% y1_0                        = 0;
+% phi1_0                      = 0;
+% x2_0                        = parms.a+parms.b;
+% y2_0                        = parms.d;
+% phi2_0                      = pi/2;
+% 
+% % Phi1d
+% x1d_0                       = 1;
+% y1d_0                       = 0;
+% phi1d_0                     = 0;
+% x2d_0                       = 0;
+% y2d_0                       = 1;
+% phi2d_0                     = 0;
+% 
+% % Set forces
+% F                           = [0 0 0 0 0 0].';                          % No torque applied
+% parms.F                     = F;
+% x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
+
+%% States Question 2
 % In this the generalised coordinates x1_init and y1_init are assumed to be
 % defined so that wheel 1 is in the origin.
 phi1_0                      = 0;                                        % Angle of first body with horizontal
 phi2_0                      = pi;                                        % Angle of second body with horizontal
 
-%% Calculate other dependent initial positions and angles
+% Calculate other dependent initial positions and angles
 x1_0                        = parms.a*cos(phi1_0);
 y1_0                        = parms.b*sin(phi1_0);
 x2_0                        = (parms.a+parms.b)*cos(phi1_0)+parms.d*cos(phi2_0);
 y2_0                        = (parms.a+parms.b)*sin(phi1_0)+parms.d*sin(phi2_0);
 
-%% Velocity initital states (Make sure that the are admissable)
+% Velocity initital states (Make sure that the are admissable)
 % Phi1d
 x1d_0                       = 0;
 y1d_0                       = 0;
@@ -86,9 +110,9 @@ phi2d_0                     = 0;
 
 % Create full state for optimization
 x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
+
 %% Set Forces and torques
 % F=[F1_x,F1_y,M1,F2_x,F2_y,M2];
-% F                           = [0 0 0 0 0 0].';                          % No torque applied
 F                           = [0 0 -parms.M0*cos(parms.omega*t) 0 0 parms.M0*cos(parms.omega*t)].';                            % Torque applied
 
 % Store F in function
@@ -96,12 +120,12 @@ parms.F                     = F;
 
 %% -- Derive equation of motion --
 %% Calculate EOM by means of Newton-Euler equations
-[xdd_handle,C_handle,Cd_handle,D_handle,Dd_handle] = EOM_calc(parms);     % Calculate symbolic equations of motion and put in parms struct
+[xdd_handle,C_handle,Cd_handle,D_handle,Dd_handle,F_handle] = EOM_calc(parms);     % Calculate symbolic equations of motion and put in parms struct
 parms.C_handle               = C_handle;
 parms.Cd_handle              = Cd_handle;
 parms.D_handle               = D_handle;
 parms.Dd_handle              = Dd_handle;
-parms.xdp_handle             = xdd_handle;
+parms.xdd_handle             = xdd_handle;
 parms.EOM_xdd                = xdd_handle;
 
 %% -- Perform simulation --
@@ -118,8 +142,64 @@ xdd               = state_deriv(x,parms);
 %% Calculate position of point A B and C
 [A,B,C] = point_calc(x,parms);
 
-%% Calculate kinetic energy
-[ekin] = ekin_calc(x,parms);
+%% Calculate kinetic energy and torque wo[ekin] = ekin_calc(x,parms);
+[ekin]      = ekin_calc(x,parms);
+[tw]        = tw_calc(x,parms);
+
+% %% -- ANIMATE --
+% % Adapted from A. Schwab's animation code
+% 
+% % Rename data
+% X1 = x(:,1); Y1 = x(:,2); P1 = x(:,3);
+% DX1 = x(:,7); DY1 = x(:,8); DP1 = x(:,9);
+% X2 = x(:,4); Y2 = x(:,5); P2 = x(:,6);
+% DX2 = x(:,10); DY2 = x(:,11); DP2 = x(:,12);
+% 
+% % Rename Points
+% XA = A(:,1); YA = A(:,2);
+% XB = B(:,1); YB = B(:,2);
+% XC = C(:,1); YC = C(:,2);
+% 
+% % Create figure
+% figure
+% plot(X1,Y1)
+% hold on
+% plot(XA,YA)
+% hold on
+% plot(X2,Y2)
+% hold on
+% plot(XC,YC)
+% grid on
+% set(gca,'fontsize',16)
+% title('Animation EzyRoller')
+% axis([min(X1)-parms.a max(X1)+parms.a min(Y1)-parms.a max(Y1)+parms.a]);
+% axis equal
+% l = plot([X1(1) XA(1)],[Y1(1) YA(1)]);
+% k = plot([X2(1) XC(1)],[Y2(1) YC(1)]);
+% j = plot([X1(1) XB(1)],[Y1(1) YB(1)]);
+% m = plot([XB(1) X2(1)],[YB(1) Y2(1)]);
+% set(l,'LineWidth',5);
+% set(l,'Color','K')
+% set(k,'LineWidth',5);
+% set(k,'Color','C')
+% set(j,'LineWidth',5);
+% set(j,'Color','K')
+% set(m,'LineWidth',5);
+% set(m,'Color','C')
+% nstep = length(t);
+% nskip = 10;
+% for istep = 2:nskip:nstep
+%     set(l,'XData',[X1(istep) XA(istep)])
+%     set(l,'YData',[Y1(istep) YA(istep)])
+%     set(k,'XData',[X2(istep) XC(istep)])
+%     set(k,'YData',[Y2(istep) YC(istep)])
+%     set(j,'XData',[X1(istep) XB(istep)])
+%     set(j,'YData',[Y1(istep) YB(istep)])
+%     set(m,'XData',[XB(istep) X2(istep)])
+%     set(m,'YData',[YB(istep) Y2(istep)])
+%     drawnow
+%     pause(1e-10)
+% end
 
 %% - - Create plots - -
 %% Plot path of points on the robot
@@ -140,17 +220,29 @@ xlabel('t [s]');
 ylabel('velocity [m/s]');
 legend('x velocity (COM 1)','x velocity (COM 2)','Location', 'Best');
 subplot(2,1,2);
-plot(t,x(:,8),'b',t,x(:,9),'r','Linewidth',1.5);
+plot(t,x(:,8),'b',t,x(:,11),'r','Linewidth',1.5);
 title("y velocities of COM's");
 xlabel('t [s]');
 ylabel('velocity [m/s]');
 legend('y velocity (COM 1)','y velocity (COM 2)','Location', 'Best');
 
+%% Plot linear magnitude velocities COM's
+% Calculate velocity magnitudes
+v_com1 = sqrt(x(:,7).^2+x(:,8).^2);
+v_com2 = sqrt(x(:,10).^2+x(:,11).^2);
+
+% Plot figure
+figure;
+plot(t,v_com1,'b',t,v_com2,'r','Linewidth',1.5);
+title("velocitie mag of COM's");
+xlabel('t [s]');
+ylabel('velocity mag [m/s]');
+legend('velocity (COM 1)','velocity (COM 2)','Location', 'Best');
+
 %% Plot angular velocities
 figure;
 plot(t,x(:,9),'b',t,x(:,12),'r','Linewidth',1.5);
-title("x velocities of COM's");
-title("Angular velocities of COM's");
+title("angular velocities of COM's");
 xlabel('t [s]');
 ylabel('angular velocity [rad/s]');
 legend('angular velocity (COM 1)','angular velocity (COM 2)','Location', 'Best');
@@ -164,29 +256,45 @@ xlabel('t [s]');
 ylabel('accelleration [m/s^2]');
 legend('x accelleration (COM 1)','x celleration (COM 2)','Location', 'Best');
 subplot(2,1,2);
-plot(t,xdd(:,8),'b',t,xdd(:,9),'r','Linewidth',1.5);
+plot(t,xdd(:,8),'b',t,xdd(:,11),'r','Linewidth',1.5);
 title("y accellerations of COM's");
 xlabel('t [s]');
 ylabel('Accelleration [m/s^2]');
 legend('y accelleration (COM 1)','y accelleration (COM 2)','Location', 'Best');
 
-%% Plot angular accelerations
+%% Plot angular accelerations-
 figure;
 plot(t,xdd(:,9),'b',t,xdd(:,12),'r','Linewidth',1.5);
-title("x accelerations of COM's");
 title("Angular velocities of COM's");
 xlabel('t [s]');
 ylabel('Angular acceleration [rad/s^2]');
 legend('Angular acceleration (COM 1)','Angular acceleration (COM 2)','Location', 'Best');
 
-%% Plot kinetic energy and torque energy
+%% Plot reaction forces
 figure;
-plot(t,ekin(:,1),'-b',t,ekin(:,2),'-r',t,ekin(:,3),'--g','Linewidth',1.5)
+plot(t,x(:,13:end),'Linewidth',1.5);
+title("Reaction forces in the constraints");
+xlabel('t [s]');
+ylabel('Reaction Force [N]');
+legend('X reaction force in joint B (FB_x)','Y reaction force in joint B (FB_y)','Wheel A friction force (no slip)','Wheel C friction force (no slip)','Location', 'Best');
+
+%% Plot kinetic energy
+figure;
+plot(t,ekin(:,1),'-b',t,ekin(:,2),'-r',t,ekin(:,3),'-g','Linewidth',1.5)
 set(gca,'fontsize',18);
-title("Kinetic energy of the COM's and Torque Work");
+title("Kinetic energy of the COM's");
 xlabel('t [s]');
 ylabel('Kinetic energy[Joule]');
 legend('Kinetic energy (COM 1)','kinetic energy (COM 2)','Kinetic energy system','Location', 'Best');
+
+%% Plot Kinetic energy plus torque energy
+figure;
+plot(t,ekin(:,1),'-m',t,ekin(:,2),'-c',t,ekin(:,3),'-b',t,tw,'--r','Linewidth',1.5)
+set(gca,'fontsize',18);
+title("Kinetic energy of the COM's and Torque Work");
+xlabel('t [s]');
+ylabel('Energy [Joule]');
+legend('Kinetic energy (COM 1)','kinetic energy (COM 2)','Kinetic energy system','Input torque work','Location', 'Best');
 
 %% FUNCTIONS
 
@@ -194,7 +302,6 @@ legend('Kinetic energy (COM 1)','kinetic energy (COM 2)','Kinetic energy system'
 % These functions are used to calculate quantaties that are not calculated
 % during the simulation. This regards quantaties which are not state
 % variables
-
 
 % Calculate second derivative
 function [xdd] = state_deriv(x,parms)
@@ -240,13 +347,29 @@ end
 function [ekin] = ekin_calc(x,parms)
 
 % preallocate memory for ekin vector
-ekin        = zeros(size(x,1),3);
+ekin        = zeros(size(x,1),1);
 
 % Loop through states
 for ii = 1:size(x,1)
-    ekin(ii,1) = 0.5*parms.m1*(x(ii,1).^2+x(ii,2).^2)+0.5*parms.J1*x(ii,3).^2;
-    ekin(ii,2) = 0.5*parms.m2*(x(ii,4).^2+x(ii,5).^2)+0.5*parms.J2*x(ii,6).^2;
-    ekin(ii,3) = ekin(ii,1)+ekin(ii,2);
+    ekin(ii,1) = 0.5*x(ii,7:9)*parms.M(1:3,1:3)*x(ii,7:9).';
+    ekin(ii,2) = 0.5*x(ii,10:12)*parms.M(4:6,4:6)*x(ii,10:12).';
+    ekin(ii,3) = 0.5*x(ii,7:12)*parms.M*x(ii,7:12).';
+end
+end
+
+% Calculate kinetic energy of COM's
+function [tw] = tw_calc(x,parms)
+
+% Calculate the applied torque for the whole movement
+% preallocate memory for xdd vector
+tw         = zeros(size(x,1),1);
+
+% Create time vector
+time            = 0:parms.h:((parms.h*size(x,1))-parms.h);
+
+% Create W vector
+for ii = (2:size(x,1))
+    tw(ii)     = tw(ii-1) + sum((subs_F(time(ii))).'.*(x(ii,1:6)-x((ii-1),1:6)));
 end
 end
 
@@ -306,7 +429,7 @@ for ii = 1:(size(time,1)-1)
     
     % Correct for intergration drift
     x_now_tmp = x(ii+1,:);
-    [x_new,error] = gauss_newton(x_now_tmp,parms);
+    [x_new,~] = gauss_newton(x_now_tmp,parms);
     
     % Update the constraint forces
     x_new_full       = num2cell([x(ii,1:end-4),t],1);
@@ -359,35 +482,42 @@ while (max(abs(C)) > parms.tol)&& (n_iter < parms.nmax)
     [C,Cd,~,~]      = constraint_calc(x,parms);
 end
 
-% Calculate the corresponding speeds
-x_tmp_vel          = x(7:12);
-Dxd_n1             = -Cd*inv(Cd.'*Cd)*Cd.'*x_tmp_vel.';
-x(7:12)            = x_tmp_vel + Dxd_n1.';
-
-C_error = C;
+% % Calculate the corresponding speeds
+% x_tmp_vel          = x(7:12);
+% Dxd_n1             = -Cd*inv(Cd.'*Cd)*Cd.'*x_tmp_vel.';
+% x(7:12)            = x_tmp_vel + Dxd_n1.';
+%
 
 %% Gaus-newton velocity constraint correction
 n_iter          = 0;                                                                        % Set iteration counter                                                               % Get position data out
 
-% Calculate the two needed constraints
-[~,~,D,Dd] = constraint_calc(x,parms);
+% % Calculate the two needed constraints
+% [~,~,D,Dd] = constraint_calc(x,parms);
 
-% Solve non-linear constraint least-square problem
-while (max(abs(D)) > parms.tol)&& (n_iter < parms.nmax)
-    x_tmp           = x(7:12);
-    n_iter = n_iter + 1;
-    x_del  = Dd*inv(Dd.'*Dd)*-D.';
-    x(7:12) = x_tmp+ x_del.';
-    
-    % Recalculate constraint
-    [~,~,D,Dd]      = constraint_calc(x,parms);
-end
+% % Solve non-linear constraint least-square problem
+% while (max(abs(D)) > parms.tol)&& (n_iter < parms.nmax)
+%     x_tmp           = x(7:12);
+%     n_iter = n_iter + 1;
+%     x_del  = Dd*inv(Dd.'*Dd)*-D.';
+%     x(7:12) = x_tmp+ x_del.';
+%
+%     % Recalculate constraint
+%     [~,~,D,Dd]      = constraint_calc(x,parms);
+% end
 
-% Calculate the corresponding speeds
+
+% Calculate constraints
+[~,Cd,D,Dd]        = constraint_calc(x,parms);
+Sd                 = [Cd Dd];
+
+% Calculate new velocities
 x_tmp_vel          = x(7:12);
-Dxd_n1             = -Dd*inv(Dd.'*Dd)*Dd.'*x_tmp_vel.';
+Dxd_n1             = -Sd*inv(Sd.'*Sd)*Sd.'*x_tmp_vel.';
 x(7:12)            = x_tmp_vel + Dxd_n1.';
 
+%% Recalculate error
+[C,~,D,~]        = constraint_calc(x,parms);
+C_error = C;
 D_error = D;
 
 % Store full error
@@ -395,7 +525,7 @@ error = [C_error D_error];
 end
 
 %% Calculate (symbolic) Equations of Motion four our setup
-function [xdd_handle,C_handle,Cd_handle,D_handle,Dd_handle] = EOM_calc(parms)
+function [xdd_handle,C_handle,Cd_handle,D_handle,Dd_handle,F_handle] = EOM_calc(parms)
 
 %% -- The code between this lines is done to obtain the latex formulas --
 % % Create model parameters in symbolic form
@@ -435,9 +565,6 @@ phi2d           = parms.syms.phi2d;
 x               = [x1;y1;phi1;x2;y2;phi2];
 xd              = [x1d;y1d;phi1d;x2d;y2d;phi2d];
 
-% Create mass matrix (Segment 1 and 2)
-parms.M         = diag([m1,m1,J1,m2,m2,J2]);
-
 % Calculate Position constraints
 C               = [x1+b*cos(phi1)-x2+d*cos(phi2); ...
     y1+b*sin(phi1)-y2+d*sin(phi2)];
@@ -468,11 +595,11 @@ A = [parms.M JC_x.' D.'                                                     ; ..
 B = [parms.F ;-JC_xd*xd;-JD_xd*xd];
 
 % Calculate result expressed in generalized coordinates
-xdp             = A\B;
+xdd             = A\B;
 
 %% Convert to function handles
 % xdp_handle       = matlabFunction(xdp);                                       % Create function handle of EOM in terms of COM positions
-xdd_handle         = matlabFunction(simplify(xdp),'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d t]);                          % Create function handle of EOM in terms of generalised coordinates
+xdd_handle         = matlabFunction(simplify(xdd),'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d t]);                          % Create function handle of EOM in terms of generalised coordinates
 % matlabFunction(qdp,'file',qdp_cal')
 
 % Position constraint function handle
@@ -488,5 +615,8 @@ D_handle        = matlabFunction(simplify(D_x),'vars',[phi1 phi2 x1d y1d phi1d x
 % Velocity constraint derivative function handle
 Dd              = simplify(JD_x);
 Dd_handle       = matlabFunction(Dd);
+
+% Force torque volocity handle
+F_handle = matlabFunction(parms.F,'File','subs_F');
 
 end
