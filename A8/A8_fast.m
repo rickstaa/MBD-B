@@ -2,15 +2,6 @@
 %  Rick Staa (4511328)
 %  Last edit: 29/05/2018
 
-%% NOTES
-%% 1: Check if solution is alright
-%       - EOM
-%       - RK4
-%       - Gaus method
-%       - Create function which calculates the initial states
-%% 2: Add torque
-%       - Finish last part of assignment
-
 %% - - Pre processing operations --
 clear all; close all; clc;
 fprintf('--- A8 ---\n');
@@ -73,7 +64,7 @@ parms.g                     = 9.81;                                     % [parms
 % x2_0                        = parms.a+parms.b;
 % y2_0                        = parms.d;
 % phi2_0                      = pi/2;
-% 
+%
 % % Phi1d
 % x1d_0                       = 1;
 % y1d_0                       = 0;
@@ -81,7 +72,7 @@ parms.g                     = 9.81;                                     % [parms
 % x2d_0                       = 0;
 % y2d_0                       = 1;
 % phi2d_0                     = 0;
-% 
+%
 % % Set forces
 % F                           = [0 0 0 0 0 0].';                          % No torque applied
 % parms.F                     = F;
@@ -120,18 +111,12 @@ parms.F                     = F;
 
 %% -- Derive equation of motion --
 %% Calculate EOM by means of Newton-Euler equations
-[xdd_handle,C_handle,Cd_handle,D_handle,Dd_handle,F_handle] = EOM_calc(parms);     % Calculate symbolic equations of motion and put in parms struct
-parms.C_handle               = C_handle;
-parms.Cd_handle              = Cd_handle;
-parms.D_handle               = D_handle;
-parms.Dd_handle              = Dd_handle;
-parms.xdd_handle             = xdd_handle;
-parms.EOM_xdd                = xdd_handle;
+EOM_calc(parms);     % Calculate symbolic equations of motion and put in parms struct
 
 %% -- Perform simulation --
 %% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
 tic
-[t,x]                         = RK4_custom(parms.EOM_xdd,x0,sim_time,parms);
+[t,x]                         = RK4_custom(x0,sim_time,parms);
 toc
 
 %% -- Post Processing --
@@ -148,18 +133,18 @@ xdd               = state_deriv(x,parms);
 
 % %% -- ANIMATE --
 % % Adapted from A. Schwab's animation code
-% 
+%
 % % Rename data
 % X1 = x(:,1); Y1 = x(:,2); P1 = x(:,3);
 % DX1 = x(:,7); DY1 = x(:,8); DP1 = x(:,9);
 % X2 = x(:,4); Y2 = x(:,5); P2 = x(:,6);
 % DX2 = x(:,10); DY2 = x(:,11); DP2 = x(:,12);
-% 
+%
 % % Rename Points
 % XA = A(:,1); YA = A(:,2);
 % XB = B(:,1); YB = B(:,2);
 % XC = C(:,1); YC = C(:,2);
-% 
+%
 % % Create figure
 % figure
 % plot(X1,Y1)
@@ -318,10 +303,10 @@ for ii = 1:size(x,1)
     t = time(ii);
     
     % Calculate xdd
-    x_now_tmp   = num2cell(x(ii,1:end-4),1);
-    x_now_full  = num2cell([x(ii,1:end-4),t],1);
-    xdd_tmp   = feval(parms.EOM_xdd,x_now_full{[3 6 7:13]}).';
-    xdd(ii,:) = [cell2mat(x_now_tmp(7:12)) xdd_tmp(1:6)];
+    x_now_tmp    = x(ii,1:end-4);
+    x_now_input  = num2cell([x(ii,[3 6 7:12]),t],1);
+    xdd_tmp      = subs_xdd(x_now_input{:}).';
+    xdd(ii,:)    = [x_now_tmp(7:12),xdd_tmp(1:6)];
 end
 end
 
@@ -378,7 +363,7 @@ end
 % Runge-Kuta numerical intergration. This function takes as inputs the
 % parameters of the system (parms), the EOM of the system (parms.EOM)
 % and the initial state.
-function [time,x] = RK4_custom(EOM,x0,sim_time,parms)
+function [time,x] = RK4_custom(x0,sim_time,parms)
 
 % Initialise variables
 time                = (0:parms.h:sim_time).';                                  % Create time array
@@ -395,36 +380,36 @@ for ii = 1:(size(time,1)-1)
     t = time(ii);
     
     % Perform RK 4
-    x_now_tmp         = num2cell(x(ii,1:end-4),1);                                                                  % Create cell for feval function
-    x_full_tmp        = num2cell([x(ii,1:end-4),t],1);                                                              % Add time to state
-    K1                = [cell2mat(x_now_tmp(1,end-5:end)),feval(EOM,x_full_tmp{[3 6 7:13]}).'];                     % Calculate the second derivative at the start of the step
-    x1_tmp            = num2cell(cell2mat(x_now_tmp) + (parms.h*0.5)*K1(1:end-4));                                  % Create cell for feval function
-    x1_full           = num2cell([cell2mat(x1_tmp),t],1);                                                           % Add time to state
-    K2                = [cell2mat(x1_tmp(1,end-5:end)),feval(EOM,x1_full{[3 6 7:13]}).'];                           % Calculate the second derivative halfway the step
-    x2_tmp            = num2cell(cell2mat(x_now_tmp) + (parms.h*0.5)*K2(1:end-4));                                  % Refine value calculation with new found derivative
-    x2_full           = num2cell([cell2mat(x2_tmp),t],1);                                                           % Add time to state
-    K3                = [cell2mat(x2_tmp(1,end-5:end)),feval(EOM,x2_full{[3 6 7:13]}).'];                           % Calculate new derivative at the new refined location
-    x3_tmp            = num2cell(cell2mat(x_now_tmp) + (parms.h)*K3(1:end-4));                                      % Calculate state at end step with refined derivative
-    x3_full           = num2cell([cell2mat(x3_tmp),t],1);                                                           % Add time to state
-    K4                = [cell2mat(x3_tmp(1,end-5:end)),feval(EOM,x3_full{[3 6 7:13]}).'];                           % Calculate last second derivative
-    x(ii,end-3:end)   = (1/6)*(K1(end-3:end)+2*K2(end-3:end)+2*K3(end-3:end)+K4(end-3:end));                        % Take weighted sum of K1, K2, K3
-    x(ii+1,1:end-4)   = cell2mat(x_now_tmp) + (parms.h/6)*(K1(1:end-4)+2*K2(1:end-4)+2*K3(1:end-4)+K4(1:end-4));    % Perform euler intergration step
+    x_now_tmp           = x(ii,1:end-4);                                                                    % Create cell for subs function function
+    x_input             = num2cell([x(ii,[3 6 7:12]),t],1);                                                 % Add time to state
+    K1                  = [x_now_tmp(1,end-5:end),subs_xdd(x_input{:}).'];                                  % Calculate the second derivative at the start of the step
+    x1_tmp              = x_now_tmp + (parms.h*0.5)*K1(1:end-4);                                            % Create cell for subs function function
+    x1_input            = num2cell([x1_tmp([3 6 7:12]),t],1);                                               % Add time to state
+    K2                  = [x1_tmp(1,end-5:end),subs_xdd(x1_input{:}).'];                                    % Calculate the second derivative halfway the step
+    x2_tmp              = x_now_tmp + (parms.h*0.5)*K2(1:end-4);                                            % Refine value calculation with new found derivative
+    x2_input            = num2cell([x2_tmp([3 6 7:12]),t],1);                                               % Add time to state
+    K3                  = [x2_tmp(1,end-5:end),subs_xdd(x2_input{:}).'];                                    % Calculate new derivative at the new refined location
+    x3_tmp              = x_now_tmp + (parms.h)*K3(1:end-4);                                                % Calculate state at end step with refined derivative
+    x3_input            = num2cell([x3_tmp([3 6 7:12]),t],1);                                               % Add time to state
+    K4                  = [x3_tmp(1,end-5:end),subs_xdd(x3_input{:}).'];                                    % Calculate last second derivative
+    x(ii,end-3:end)     = (1/6)*(K1(end-3:end)+2*K2(end-3:end)+2*K3(end-3:end)+K4(end-3:end));              % Take weighted sum of K1, K2, K3
+    x(ii+1,1:end-4)     = x_now_tmp + (parms.h/6)*(K1(1:end-4)+2*K2(1:end-4)+2*K3(1:end-4)+K4(1:end-4));    % Perform euler intergration step
     
     % Calculate last acceleration
     if ii == (size(time,1)-1)
-        x_now_tmp         = num2cell(x(ii+1,1:end-4),1);                                                                  % Create cell for feval function
-        x_full_tmp        = num2cell([x(ii+1,1:end-4),t],1);                                                              % Add time to state
-        K1                = [cell2mat(x_now_tmp(1,end-5:end)),feval(EOM,x_full_tmp{[3 6 7:13]}).'];                     % Calculate the second derivative at the start of the step
-        x1_tmp            = num2cell(cell2mat(x_now_tmp) + (parms.h*0.5)*K1(1:end-4));                                  % Create cell for feval function
-        x1_full           = num2cell([cell2mat(x1_tmp),t],1);                                                           % Add time to state
-        K2                = [cell2mat(x1_tmp(1,end-5:end)),feval(EOM,x1_full{[3 6 7:13]}).'];                           % Calculate the second derivative halfway the step
-        x2_tmp            = num2cell(cell2mat(x_now_tmp) + (parms.h*0.5)*K2(1:end-4));                                  % Refine value calculation with new found derivative
-        x2_full           = num2cell([cell2mat(x2_tmp),t],1);                                                           % Add time to state
-        K3                = [cell2mat(x2_tmp(1,end-5:end)),feval(EOM,x2_full{[3 6 7:13]}).'];                           % Calculate new derivative at the new refined location
-        x3_tmp            = num2cell(cell2mat(x_now_tmp) + (parms.h)*K3(1:end-4));                                      % Calculate state at end step with refined derivative
-        x3_full           = num2cell([cell2mat(x3_tmp),t],1);                                                           % Add time to state
-        K4                = [cell2mat(x3_tmp(1,end-5:end)),feval(EOM,x3_full{[3 6 7:13]}).'];                           % Calculate last second derivative
-        x(ii+1,end-3:end)   = (1/6)*(K1(end-3:end)+2*K2(end-3:end)+2*K3(end-3:end)+K4(end-3:end));                        % Take weighted sum of K1, K2, K3
+        x_now_tmp           = x(ii+1,1:end-4);                                                                  % Create cell for subs function function
+        x_input             = num2cell([x(ii+1,[3 6 7:12]),t],1);                                               % Add time to state
+        K1                  = [x_now_tmp(1,end-5:end),subs_xdd(x_input{:}).'];                                  % Calculate the second derivative at the start of the step
+        x1_tmp              = x_now_tmp + (parms.h*0.5)*K1(1:end-4);                                            % Create cell for subs function function
+        x1_input            = num2cell([x1_tmp([3 6 7:12]),t],1);                                               % Add time to state
+        K2                  = [x1_tmp(1,end-5:end),subs_xdd(x1_input{:}).'];                                    % Calculate the second derivative halfway the step
+        x2_tmp              = x_now_tmp + (parms.h*0.5)*K2(1:end-4);                                            % Refine value calculation with new found derivative
+        x2_input            = num2cell([x2_tmp([3 6 7:12]),t],1);                                               % Add time to state
+        K3                  = [x2_tmp(1,end-5:end),subs_xdd(x2_input{:}).'];                                    % Calculate new derivative at the new refined location
+        x3_tmp              = x_now_tmp + (parms.h)*K3(1:end-4);                                                % Calculate state at end step with refined derivative
+        x3_input            = num2cell([x3_tmp([3 6 7:12]),t],1);                                               % Add time to state
+        K4                  = [x3_tmp(1,end-5:end),subs_xdd(x3_input{:}).'];                                    % Calculate last second derivative
+        x(ii+1,end-3:end)     = (1/6)*(K1(end-3:end)+2*K2(end-3:end)+2*K3(end-3:end)+K4(end-3:end));            % Take weighted sum of K1, K2, K3
     end
     
     % Correct for intergration drift
@@ -432,8 +417,8 @@ for ii = 1:(size(time,1)-1)
     [x_new,~] = gauss_newton(x_now_tmp,parms);
     
     % Update the constraint forces
-    x_new_full       = num2cell([x(ii,1:end-4),t],1);
-    x_update         = feval(EOM,x_new_full{[3 6:13]}).';
+    x_new_input       = num2cell([x(ii,[3 6 7:12]),t],1);
+    x_update          = subs_xdd(x_new_input{:}).';
     
     % Overwrite position coordinates
     x(ii+1,:)       = [x_new(1:end-4) x_update(end-3:end)];
@@ -448,16 +433,16 @@ function [C,Cd,D,Dd] = constraint_calc(x,parms)
 x_now_tmp       = num2cell(x,1);
 
 %% Calculate position constraint
-C               = feval(parms.C_handle,x_now_tmp{1:6}).';
+C               = subs_C(x_now_tmp{1:6}).';
 
 % Calculate constraint derivative
-Cd              = feval(parms.Cd_handle,x_now_tmp{[3 6]}).';
+Cd              = subs_Cd(x_now_tmp{[3 6]}).';
 
 %% Calculate velocity constraint
-D               = feval(parms.D_handle,x_now_tmp{[3 6:12]}).';
+D               = subs_D(x_now_tmp{[3 6:12]}).';
 
 % Calculate velocity constraint derivative
-Dd              = feval(parms.Dd_handle,x_now_tmp{[3 6]}).';
+Dd              = subs_Dd(x_now_tmp{[3 6]}).';
 end
 
 %% Speed correct function
@@ -525,7 +510,7 @@ error = [C_error D_error];
 end
 
 %% Calculate (symbolic) Equations of Motion four our setup
-function [xdd_handle,C_handle,Cd_handle,D_handle,Dd_handle,F_handle] = EOM_calc(parms)
+function EOM_calc(parms)
 
 %% -- The code between this lines is done to obtain the latex formulas --
 % % Create model parameters in symbolic form
@@ -598,25 +583,21 @@ B = [parms.F ;-JC_xd*xd;-JD_xd*xd];
 xdd             = A\B;
 
 %% Convert to function handles
-% xdp_handle       = matlabFunction(xdp);                                       % Create function handle of EOM in terms of COM positions
-xdd_handle         = matlabFunction(simplify(xdd),'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d t]);                          % Create function handle of EOM in terms of generalised coordinates
-% matlabFunction(qdp,'file',qdp_cal')
+matlabFunction(simplify(xdd),'vars',[x1 y1 phi1 x2 y2 phi2],'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d t],'File','subs_xdd');
 
 % Position constraint function handle
-C_handle        = matlabFunction(simplify(C),'vars',[x1 y1 phi1 x2 y2 phi2]);
+matlabFunction(simplify(C),'vars',[x1 y1 phi1 x2 y2 phi2],'File','subs_C');
 
 % Position constraint derivative function handle
-Cd              = JC_x;
-Cd_handle       = matlabFunction(simplify(Cd));
+matlabFunction(simplify(JC_x),'File','subs_Cd');
 
 % Velocity constraint  function handle
-D_handle        = matlabFunction(simplify(D_x),'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d]);
+matlabFunction(simplify(D_x),'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d],'File','subs_D');
 
 % Velocity constraint derivative function handle
-Dd              = simplify(JD_x);
-Dd_handle       = matlabFunction(Dd);
+matlabFunction(simplify(JD_x),'File','subs_Dd');
 
 % Force torque volocity handle
-F_handle = matlabFunction(parms.F,'File','subs_F');
+matlabFunction(parms.F,'File','subs_F');
 
 end
