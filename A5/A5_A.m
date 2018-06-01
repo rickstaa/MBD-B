@@ -14,7 +14,7 @@ syms alpha beta alphap betap                                % Initialize general
 syms gamma g                                                % Initialize enviroment variables
 
 % Calculate additional parameters
-I       = (1/12)*m*(l^2);                                     % Mass moment of inertia of each leg about the COM
+I       = (1/12)*m*(l^2);                                   % Mass moment of inertia of each leg about the COM
 
 % Devine state and its derivative
 q       = [alpha;beta];

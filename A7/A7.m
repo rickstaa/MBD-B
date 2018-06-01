@@ -18,7 +18,7 @@ parms.syms.phi5d            = phi5d;
 
 %% Intergration parameters
 time                        = 3;                                        % Intergration time
-parms.h                     = 1e-3;                                    % Intergration step size
+parms.h                     = 1e-3;                                     % Intergration step size
 parms.tol                   = 1e-12;                                    % Intergration constraint error tolerance
 parms.nmax                  = 10;                                       % Maximum number of Gauss-Newton drift correction iterations
 
@@ -56,20 +56,16 @@ phi2_init                   = 0;
 phi4_init                   = atan2(parms.O4O2,parms.O2A);
 phi5_init                   = pi-asin((parms.Yc-parms.O4B*sin(phi4_init))/parms.BC);
 phi2d_init                  = (150*pi)/60;
-phi4d_init                  = cos(phi4_init)^2*phi2d_init; % Not real value but failed to calculate
+phi4d_init                  = cos(phi4_init)^2*phi2d_init;                                       % Not real value but failed to calculate
 phi5d_init                  = (parms.O4B*cos(phi4_init)*phi4d_init)/(-parms.BC*cos(phi5_init));  % Not real value but failed to calculate
 q0                          = [phi2_init phi4_init phi5_init phi2d_init phi4d_init phi5d_init];
 
 %% Derive equation of motion
-[EOM_qdp,C_handle,Cd_handle,X_handle,Xp_handle] = EOM_calc(parms);                         % Calculate symbolic equations of motion and put in parms struct
-parms.C_handle               = C_handle;
-parms.Cd_handle              = Cd_handle;
-parms.X_handle               = X_handle;
-parms.Xp_handle              = Xp_handle;
+EOM_calc(parms);                                                        % Calculate symbolic equations of motion and put in parms struct
 
 %% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
 tic
-[t_RK4,q_RK4,x_RK4,xdp_RK4]                         = RK4_custom(EOM_qdp,q0,parms);
+[t_RK4,q_RK4,x_RK4,xdp_RK4]                         = RK4_custom(q0,parms);
 toc
 
 %% Calculate com velocities
@@ -136,53 +132,53 @@ legend('slider 6 on ground','slider 3 on rocker 4','Location', 'Best')
 % Runge-Kuta numerical intergration. This function takes as inputs the
 % parameters of the system (parms), the EOM of the system (parms.EOM)
 % and the initial state.
-function [t,q,x,xdp] = RK4_custom(EOM,q0,parms)
+function [t,q,x,xdp] = RK4_custom(q0,parms)
 
 % Calculate x0
-q_new_tmp        = num2cell(q0,1);
-x0   = feval(parms.X_handle,q_new_tmp{1:3}).';
-xdp0 = feval(parms.Xp_handle,q_new_tmp{:}).';
+q_new_tmp               = num2cell(q0,1);
+x0                      = subs_x(q_new_tmp{1:3}).';
+xdp0                    = subs_xdp(q_new_tmp{:}).';
 
 % Initialise variables
-t                     = 0;                                                 % Initiate time
-q                     = [q0 0 0 0 0 0];                                    % Put initial state in array
-x                     = x0;
-xdp                   = xdp0;
+t                       = 0;                                                 % Initiate time
+q                       = [q0 0 0 0 0 0];                                    % Put initial state in array
+x                       = x0;
+xdp                     = xdp0;
 % Caculate the motion for the full simulation time by means of a
 % Runge-Kutta4 method
 
 % Perform intergration till two full rotations of the crank
-ii = 1;                                                                    % Create counter
+ii = 1;                                                                      % Create counter
 while abs(q(ii,1)) < (4*pi)
     
     % Calculate the next state by means of a RK4 method
-    q_now_tmp         = num2cell(q(ii,1:end-5),1);                                                % Create cell for feval function
-    K1                = [cell2mat(q_now_tmp(1,end-2:end)),feval(EOM,q_now_tmp{:}).'];             % Calculate the second derivative at the start of the step
-    q1_tmp            = num2cell(cell2mat(q_now_tmp) + (parms.h*0.5)*K1(1,1:end-2));              % Create cell for feval function
-    K2                = [cell2mat(q1_tmp(1,end-2:end)),feval(EOM,q1_tmp{:}).'];                   % Calculate the second derivative halfway the step
-    q2_tmp            = num2cell(cell2mat(q_now_tmp) + (parms.h*0.5)*K2(1:end-2));                % Refine value calculation with new found derivative
-    K3                = [cell2mat(q2_tmp(1,end-2:end)),feval(EOM,q2_tmp{:}).'];                   % Calculate new derivative at the new refined location
-    q3_tmp            = num2cell(cell2mat(q_now_tmp) + (parms.h)*K3(1:end-2));                    % Calculate state at end step with refined derivative
-    K4                = [cell2mat(q3_tmp(1,end-2:end)),feval(EOM,q3_tmp{:}).'];                   % Calculate last second derivative                         % Take weighted sum of K1, K2, K3
-    q_now_p           = (1/6)*(K1(end-4:end)+2*K2(end-4:end)+2*K3(end-4:end)+K4(end-4:end));      % Estimated current derivative
-    q_next            = cell2mat(q_now_tmp) + (parms.h/6)*(K1(1:6)+2*K2(1:6)+2*K3(1:6)+K4(1:6));  % Perform euler intergration step
+    q_now_tmp           = num2cell(q(ii,1:end-5),1);                                                % Create cell for subs function function
+    K1                  = [cell2mat(q_now_tmp(1,end-2:end)),subs_qdp(q_now_tmp{:}).'];              % Calculate the second derivative at the start of the step
+    q1_tmp              = num2cell(cell2mat(q_now_tmp) + (parms.h*0.5)*K1(1,1:end-2));              % Create cell for subs function function
+    K2                  = [cell2mat(q1_tmp(1,end-2:end)),subs_qdp(q1_tmp{:}).'];                    % Calculate the second derivative halfway the step
+    q2_tmp              = num2cell(cell2mat(q_now_tmp) + (parms.h*0.5)*K2(1:end-2));                % Refine value calculation with new found derivative
+    K3                  = [cell2mat(q2_tmp(1,end-2:end)),subs_qdp(q2_tmp{:}).'];                    % Calculate new derivative at the new refined location
+    q3_tmp              = num2cell(cell2mat(q_now_tmp) + (parms.h)*K3(1:end-2));                    % Calculate state at end step with refined derivative
+    K4                  = [cell2mat(q3_tmp(1,end-2:end)),subs_qdp(q3_tmp{:}).'];                    % Calculate last second derivative                         
+    q_now_p             = (1/6)*(K1(end-4:end)+2*K2(end-4:end)+2*K3(end-4:end)+K4(end-4:end));      % Estimated current derivative
+    q_next              = cell2mat(q_now_tmp) + (parms.h/6)*(K1(1:6)+2*K2(1:6)+2*K3(1:6)+K4(1:6));  % Perform euler intergration step
     
     % Save reaction forces and current derivative in state
-    q(ii,end-4:end)   = q_now_p;
+    q(ii,end-4:end)     = q_now_p;
     
     % Save full state back in q array
-    q         = [q;[q_next 0 0 0 0 0]];
+    q                   = [q;[q_next 0 0 0 0 0]];
     
     % Correct for intergration drift
     q_now_tmp = q(ii+1,:);
-    [q_new,error] = gauss_newton(q_now_tmp,parms);
+    [q_new,~] = gauss_newton(q_now_tmp,parms);
     
     % Update the second derivative and the constraint forces
-    q_new_tmp         = num2cell(q(ii,1:end-5),1);
-    q_update          = feval(EOM,q_new_tmp{:}).';
+    q_new_tmp           = num2cell(q(ii,1:end-5),1);
+    q_update            = subs_qdp(q_new_tmp{:}).';
     
     % Overwrite position coordinates
-    q(ii+1,:)       = [q_new(1:6) q_update];
+    q(ii+1,:)           = [q_new(1:6) q_update];
     
     % Create time array
     t                   = [t;t(ii)+parms.h];                                   % Perform Gauss-Newton drift correction
@@ -192,12 +188,12 @@ while abs(q(ii,1)) < (4*pi)
     
     % Calculate COM coordinates
     % Calculate COM coordinates
-    x_tmp   = feval(parms.X_handle,q_new_tmp{1:3}).';
-    xdp_tmp = feval(parms.Xp_handle,q_new_tmp{:}).';
+    x_tmp               = subs_x(q_new_tmp{1:3}).';
+    xdp_tmp             = subs_xdp(q_new_tmp{:}).';
     
     % Save x in state
-    x       = [x;x_tmp];
-    xdp     = [xdp;xdp_tmp];
+    x                   = [x;x_tmp];
+    xdp                 = [xdp;xdp_tmp];
     
 end
 end
@@ -209,13 +205,10 @@ function [C,Cd] = constraint_calc(q,parms)
 q_now_tmp       = num2cell(q,1);
 
 % Calculate the two needed constraints
-C               = [parms.O4A*cos(q(2))+parms.O2A*cos(q(1))           ...
-    parms.O4B*sin(q(2))+parms.BC*sin(q(3))-parms.Yc];
-
-C_test          = feval(parms.C_handle,q_now_tmp{1:3}).';
+C               = subs_C(q_now_tmp{1:3});
 
 % Calculate constraint derivative
-Cd              = feval(parms.Cd_handle,q_now_tmp{1:3}).';
+Cd              = subs_Cd(q_now_tmp{1:3}).';
 
 end
 
@@ -228,17 +221,17 @@ function [q,error] = gauss_newton(q,parms)
 [C,Cd] = constraint_calc(q,parms);
 
 %% Guass-Newton position correction
-n_iter          = 0;                                                                        % Set iteration counter                                                               % Get position data out
+n_iter          = 0;                                                                        % Set iteration counter                                                               
 
 % Solve non-linear constraint least-square problem
 while (max(abs(C)) > parms.tol)&& (n_iter < parms.nmax)
     q_tmp           = q(1:3);
-    n_iter = n_iter + 1;
-    q_del  = Cd*inv(Cd.'*Cd)*-C.';
-    q(1:3) = q_tmp+ q_del.';
+    n_iter          = n_iter + 1;
+    q_del           = Cd*inv(Cd.'*Cd)*-C.';
+    q(1:3)          = q_tmp+ q_del.';
     
     % Recalculate constraint
-    [C,Cd]      = constraint_calc(q,parms);
+    [C,Cd]          = constraint_calc(q,parms);
 end
 
 % Calculate the corresponding speeds
@@ -250,7 +243,7 @@ error = C;
 end
 
 %% Calculate (symbolic) Equations of Motion four our setup
-function [qdp_handle,C_handle,Cd_handle,X_handle,Xd_handle] = EOM_calc(parms)
+function EOM_calc(parms)
 
 % Unpack symbolic variables from varargin
 phi2            = parms.syms.phi2;
@@ -302,9 +295,9 @@ M_bar           = Jx_q.'*parms.M*Jx_q;
 F               = [parms.T2, 0, -parms.m3*parms.g, 0, 0, -parms.m4*parms.g, 0, 0, -parms.m5*parms.g, 0, parms.F6_x];
 
 % Create system of DAE
-A = [M_bar JC_q.'; JC_q zeros(size(JC_q,1))];
-B = [Jx_q.'*(F.'-parms.M*Jx_dq*qp); ...
-    -JC_dq*qp];
+A               = [M_bar JC_q.'; JC_q zeros(size(JC_q,1))];
+B               = [Jx_q.'*(F.'-parms.M*Jx_dq*qp); ...
+                   -JC_dq*qp];
 
 % Calculate result expressed in generalized coordinates
 qdp             = A\B;
@@ -313,21 +306,21 @@ qdp             = A\B;
 % xdp     = simplify(jacobian(xp,qp.'))*qdp + simplify(jacobian(xp,q.'))*qp;
 
 %% Convert to function handles
-% xdp_handle       = matlabFunction(xdp);                                 % Create function handle of EOM in terms of COM positions
-qdp_handle         = matlabFunction(simplify(qdp));                          % Create function handle of EOM in terms of generalised coordinates
-% matlabFunction(qdp,'file',qdp_cal')
+% xdp_handle       = matlabFunction(xdp);                                        % Create function handle of EOM in terms of COM positions
+matlabFunction(simplify(qdp),'File','subs_qdp');                                 % Create function handle of EOM in terms of generalised coordinates
 
 % Constraint function handle
-C_handle        = matlabFunction(simplify(C));
+matlabFunction(simplify(C),'File','subs_C');                                     % Create function handle of EOM in terms of generalised coordinates
 
 % Constraint derivative function handle
-Cd              = JC_q;
-Cd_handle       = matlabFunction(simplify(Cd));
+matlabFunction(simplify(JC_q),'File','subs_Cd');                                 % Create function handle of EOM in terms of generalised coordinates
 
 % Get back to COM coordinates
-X_handle        = matlabFunction(simplify(x));
+matlabFunction(simplify(x),'File','subs_x');                                     % Create function handle of EOM in terms of generalised coordinates
+
+% Get xdp COM coordinates
 xp              = Jx_q*qp;
 xdp             = simplify(jacobian(xp,qp))*qdp(1:3)+simplify(jacobian(xp,q))*qp(1:3);
-Xd_handle       = matlabFunction(simplify(xdp));
+matlabFunction(simplify(xdp),'File','subs_xdp');                                 % Create function handle of EOM in terms of generalised coordinates
 
 end

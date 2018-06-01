@@ -74,7 +74,7 @@ parms.g                     = 9.81;                                     % [parms
 % phi2d_0                     = 0;
 %
 % % Set forces
-% F                           = [0 0 0 0 0 0].';                          % No torque applied
+% F                           = [0 0 0 0 0 0].';                        % No torque applied
 % parms.F                     = F;
 % x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
 
@@ -82,7 +82,7 @@ parms.g                     = 9.81;                                     % [parms
 % In this the generalised coordinates x1_init and y1_init are assumed to be
 % defined so that wheel 1 is in the origin.
 phi1_0                      = 0;                                        % Angle of first body with horizontal
-phi2_0                      = pi;                                        % Angle of second body with horizontal
+phi2_0                      = pi;                                       % Angle of second body with horizontal
 
 % Calculate other dependent initial positions and angles
 x1_0                        = parms.a*cos(phi1_0);
@@ -111,25 +111,25 @@ parms.F                     = F;
 
 %% -- Derive equation of motion --
 %% Calculate EOM by means of Newton-Euler equations
-EOM_calc(parms);     % Calculate symbolic equations of motion and put in parms struct
+EOM_calc(parms);                                                        % Calculate symbolic equations of motion and put in parms struct
 
 %% -- Perform simulation --
 %% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
 tic
-[t,x]                         = RK4_custom(x0,sim_time,parms);
+[t,x]                       = RK4_custom(x0,sim_time,parms);
 toc
 
 %% -- Post Processing --
 %% Calculate com velocities
-% xd              = diff(x)/parms.h;
-xdd               = state_deriv(x,parms);
+% xd                        = diff(x)/parms.h;
+xdd                         = state_deriv(x,parms);
 
 %% Calculate position of point A B and C
-[A,B,C] = point_calc(x,parms);
+[A,B,C]                     = point_calc(x,parms);
 
 %% Calculate kinetic energy and torque wo[ekin] = ekin_calc(x,parms);
-[ekin]      = ekin_calc(x,parms);
-[tw]        = tw_calc(x,parms);
+[ekin]                      = ekin_calc(x,parms);
+[tw]                        = tw_calc(x,parms);
 
 % %% -- ANIMATE --
 % % Adapted from A. Schwab's animation code
@@ -292,10 +292,10 @@ legend('Kinetic energy (COM 1)','kinetic energy (COM 2)','Kinetic energy system'
 function [xdd] = state_deriv(x,parms)
 
 % preallocate memory for xdd vector
-xdd        = zeros(size(x,1),12);
+xdd         = zeros(size(x,1),12);
 
 % Create time vector
-time = 0:parms.h:((parms.h*size(x,1))-parms.h);
+time        = 0:parms.h:((parms.h*size(x,1))-parms.h);
 
 % Loop through states
 for ii = 1:size(x,1)
@@ -322,9 +322,9 @@ C_x             = x(:,4)+parms.c*cos(x(:,6));
 C_y             = x(:,5)+parms.c*sin(x(:,6));
 
 % Put them in their corresponding vector
-A = [A_x A_y];
-B = [B_x B_y];
-C = [C_x C_y];
+A               = [A_x A_y];
+B               = [B_x B_y];
+C               = [C_x C_y];
 
 end
 
@@ -332,7 +332,7 @@ end
 function [ekin] = ekin_calc(x,parms)
 
 % preallocate memory for ekin vector
-ekin        = zeros(size(x,1),1);
+ekin            = zeros(size(x,1),1);
 
 % Loop through states
 for ii = 1:size(x,1)
@@ -347,7 +347,7 @@ function [tw] = tw_calc(x,parms)
 
 % Calculate the applied torque for the whole movement
 % preallocate memory for xdd vector
-tw         = zeros(size(x,1),1);
+tw              = zeros(size(x,1),1);
 
 % Create time vector
 time            = 0:parms.h:((parms.h*size(x,1))-parms.h);
