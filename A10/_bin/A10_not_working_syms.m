@@ -44,7 +44,7 @@ parms.cd        = cd;
 parms.p_s       = p_s;
 
 % calculate the missing spring parameters
-[parms.k,parms.l_0,parms.b] = spring_param_calc(parms);
+[parms.k,parms.l0,parms.b] = spring_param_calc(parms);
 
 % Create xtra symbolic variables
 syms x y z q0 q1 q2 q3 x_d y_d z_d omega_x omega_y omega_z            % In this q0 = lambda 0 this was done for code Readability
@@ -91,6 +91,10 @@ if (EOM_calc_bool == 1)
     EOM_calc(parms);
 end
 
+%% Play sound 
+load chirp
+sound(y,Fs)
+
 %% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
 [t,x]                       = RK4_custom(x0,parms);
 
@@ -121,16 +125,16 @@ for ii = 1:(size(time,1)-1)
     x_now_tmp           = x(ii,:);                                                                  % Create cell for subs function function
     x_input             = num2cell(x(ii,:),1);                                                      % Add time to state
     K1                  = [x_now_tmp(1,8:10),subs_xdd(x_input{:}).'];                                % Calculate the second derivative at the start of the step
-    x1_tmp              = x_now_tmp + (parms.sim.dt*0.5)*K1;                                             % Create cell for subs function function
+    x1_tmp              = x_now_tmp + (parms.h*0.5)*K1;                                             % Create cell for subs function function
     x1_input            = num2cell(x1_tmp,1);                                                       % Add time to state
     K2                  = [x1_tmp(1,8:10),subs_xdd(x1_input{:}).'];                                  % Calculate the second derivative halfway the step
-    x2_tmp              = x_now_tmp + (parms.sim.dt*0.5)*K2;                                             % Refine value calculation with new found derivative
+    x2_tmp              = x_now_tmp + (parms.h*0.5)*K2;                                             % Refine value calculation with new found derivative
     x2_input            = num2cell(x2_tmp,1);                                                       % Add time to state
     K3                  = [x2_tmp(1,8:10),subs_xdd(x2_input{:}).'];                                  % Calculate new derivative at the new refined location
-    x3_tmp              = x_now_tmp + (parms.sim.dt)*K3;                                                 % Calculate state at end step with refined derivative
+    x3_tmp              = x_now_tmp + (parms.h)*K3;                                                 % Calculate state at end step with refined derivative
     x3_input            = num2cell(x3_tmp,1);                                                       % Add time to state
     K4                  = [x3_tmp(1,8:10),subs_xdd(x3_input{:}).'];                                  % Calculate last second derivative
-    x(ii+1,:)           = x_now_tmp + (parms.sim.dt/6)*(K1+2*K2+2*K3+K4);                                % Perform euler intergration step
+    x(ii+1,:)           = x_now_tmp + (parms.h/6)*(K1+2*K2+2*K3+K4);                                % Perform euler intergration step
     
     % Correct for intergration drift (Renormalise the axis of rotation)
     q_next              = x(ii+1,4:7);
@@ -142,25 +146,7 @@ end
 %% Calculate (symbolic) Equations of Motion four our setup
 function EOM_calc(parms)
 
-%% Get parameters and variables
-
-% create symbolic variables
-syms k b l_0;
-
-% Unpack variables for clarity
-m               = parms.m;
-J               = parms.J;
-r               = parms.r;
-c               = parms.c;
-A               = parms.A;
-h               = parms.h;
-w               = parms.w;
-g               = parms.g;
-rho             = parms.rho;
-c_d             = parms.cd;
-p_s             = parms.p_s;
-
-% Unpack symbolic variables from parms
+% Unpack symbolic variables from varargin
 x               = parms.syms.x;
 y               = parms.syms.y;
 z               = parms.syms.z;
@@ -175,109 +161,120 @@ omega_x         = parms.syms.omega_x;
 omega_y         = parms.syms.omega_y;
 omega_z         = parms.syms.omega_z;
 
+% Calculate the rotation matrix
+% See page 160 of the reader
+R_B2N           = [q0^2 + q1^2 - q2^2 - q3^3,       2*(q1*q2-q0*q3),        2*(q1*q3-q0*q2)     ; ...
+                   2*(q2*q1-q0*q3),                 q0^2-q1^2+q2^2-q3^2,    2*(q2*q3-q0*q1)     ; ...
+                   2*(q3*q1-q0*q2),                 2*(q3*q2-q0*q1),        q0^2-q1^2-q2^2+q3^2]; ...
+
+% Create mass matrix
+parms.M         = diag([parms.m,parms.m,parms.m]);
+
+% Express vehicle points in the global (inertial frame N)
+r_c             = [x;y;z] + R_B2N*-parms.c;                               % Vehicle center in N frame. -parms.c is the relative position of center w.r.t. COM in N frame
+r_s1            = r_c + R_B2N*-parms.p_s;                                 % Left spring attachment point in N frame
+r_s2            = r_c + R_B2N*parms.p_s;                                  % Right spring attachment point in N frame
+
+%% Get the virtual power of the spring element
 % Create small generalised spring state
 x_state         = [x;y;z];
 xd_state        = [x_d;y_d;z_d];
-omega_state     = [omega_x;omega_y;omega_z];
+w_state         = [omega_x;omega_y;omega_z];
 
-%% Calculate Rotation Matrix
+% Calculate vectors pointing along the springs downwards
+l_s1            = r_s1 - [0;-0.5*parms.w;parms.h];
+l_s2            = r_s2 - [0;0.5*parms.w;parms.h];
 
-R_B_N = [q0^2+q1^2-q2^2-q3^2, 2*(q1*q2-q0*q3),      2*(q1*q3-q0*q2);     ...
-         2*(q2*q1-q0*q3),     q0^2-q1^2+q2^2-q3^2 , 2*(q2*q3-q0*q1);     ...
-         2*(q3*q1-q0*q2),     2*(q3*q2-q0*q1),      q0^2-q1^2-q2^2+q3^2];
+% Calculat spring lenghts
+s1_length       = sqrt(sum(l_s1.^2));
+s2_length       = sqrt(sum(l_s2.^2));
 
-matlabFunction(R_B_N,'File','subs_R_B_N');
+% Calculate delta of lengths
+s1_del          = s1_length-parms.l0;
+s2_del          = s2_length-parms.l0;
 
-%% Calculate Spring contribution to virtual work
-r_c             = [x;y;z] + R_B_N*[0.01;-0.01;0.1]; 
-r_s1            = r_c + R_B_N*[0;-1;0];            
-r_s2            = r_c + R_B_N*[0;1;0];            
+% Calculate spring force sigmas
+sigma_s1         = parms.k*s1_del;
+sigma_s2         = parms.k*s2_del;
 
-% Create vetors along the spring
-l_s1            = r_s1 - [0; -w/2; h]; 
-l_s2            = r_s2 - [0; w/2; h]; 
+% Calculate jacobian of spring vector to the state
+Js1_q            = jacobian(s1_del,x_state);
+Js2_q            = jacobian(s2_del,x_state);
 
-% Calculate delta spring lenght
-l_s2            = sqrt(sum(l_s2.^2)) - l_0;  
-l_s1            = sqrt(sum(l_s1.^2)) - l_0;
+% Calculate spring Forces in N frame
+Fs1             = (sigma_s1*Js1_q).';
+Fs2             = (sigma_s2*Js2_q).';
+% Fs            = [Fs1;Fs2];
 
-% Calculate spring forces
-sigma_s1        = k*l_s1; 
-sigma_s2        = k*l_s2; 
+% % Get spring forces in N frame
+% matlabFunction(Fs,'vars',{q0,q1,q2,q3,x,y,z},'File','subs_Fs'); % Create function handle for spring force vector
 
-% Storing as functions for later
-matlabFunction(l_s1,'File','subs_l_s1');
-matlabFunction(l_s2,'File','subs_l_s2');
+%% Get the virtual power of the damper element
 
-%% Damping Components
-sigma_c1        = b*jacobian(l_s1,x_state)*xd_state; 
-sigma_c2        = b*jacobian(l_s2,x_state)*xd_state; 
+% Calculate the derivative of the spring change
+s1_length_t     = Js1_q*xd_state;
+s2_length_t     = Js2_q*xd_state;
 
-%% Air Drag
-sigma_a         = 0.5*rho*A*c_d*sqrt(sum(xd_state.^2))*xd_state;
+% Calculate the damping sigmas
+sigma_b1        = parms.b*s1_length_t;
+sigma_b2        = parms.b*s2_length_t;
 
-%% Add the contributions of all forces together
+% Calculate damping forces in N frame
+Fb1             = (sigma_b1*Js1_q).';
+Fb2             = (sigma_b2*Js2_q).';
+% Fb              = [Fb1;Fb2];
 
-% External intertial forces
-F_ext           = [0;0;-m*g]; 
+% % Get damping forces in N frame
+% matlabFunction(Fb,'vars',{x,y,z,q0,q1,q2,q3,x_d,y_d,z_d},'File','subs_Fb'); % Create function handle for damping force vector
 
-% Spring, damper and drag forces
-F               = [F_ext - sigma_s1*jacobian(l_s1,x_state)' - sigma_s2*jacobian(l_s2,x_state)' - ...
-                   sigma_c1*jacobian(l_s1,x_state)' - sigma_c2*jacobian(l_s2,x_state)' - sigma_a];
+%% Get the virtual power of the air drag
+v               = [x_d;y_d;z_d];
+D               = 0.5*parms.rho*parms.A*parms.cd*sqrt(sum(v.^2))*v;
 
-%% Now finaly calculate the linear accelerations by means of gaussian elimination
-M               = diag([m m m]);
-ddx             = inv(M)*F; 
+% % Get damping forces in N frame
+% matlabFunction(D,'vars',{x,y,z,q0,q1,q2,q3,x_d,y_d,z_d},'File','subs_D'); % Create function handle for damping force vector
 
-%% Now lets find the angular accelerations
-F1              = sigma_s1*jacobian(l_s1,x_state).' + sigma_c1*jacobian(l_s1,x_state).';
-r1              = [0.01;-0.01;-0.1] + [0;-1;0];
+%% Other External forces
+F_ext           = [0; 0; -parms.m*parms.g];
 
-F2              = sigma_s2*jacobian(l_s2,x_state).' + sigma_c2*jacobian(l_s2,x_state).';
-r2              = [0.01;-0.01;-0.1] + [0;1;0];
+%% Now the linear acceleartion part of the virtual power expression (d'alambert forces)
+xdd         = parms.M\(F_ext-Fs1-Fs2-Fb1-Fb2-D);
 
-M               = cross(r1,R_B_N'*F1) + cross(r2,R_B_N'*F2);
+%% Now the angular acceleration part of the virtual power expression (newton-Euler equation)
+% Create omega state
+omega_B         = [omega_x;omega_y;omega_z];
 
-%% Calculate angular accelerations
+% Calculate moments (Drag and gravity are in COM so no moment)
+Fs1_B           = R_B2N.'*(Fs1-Fb1);                                      % Forces expressed in body fixed fram COM
+Fs2_B           = R_B2N.'*(Fs2-Fb2);                                      % Forces expressed in body fixed fram COM
+r_Fs1_B         = -parms.c-parms.p_s;                                     % Arm from COM to spring 1 attachment
+r_Fs2_B         = -parms.c+parms.p_s;                                     % Arm form COM to spring 2 attachment
+M_1             = cross(r_Fs1_B,Fs1_B);                                   % Moment spring 1 exerted on body in frame B
+M_2             = cross(r_Fs2_B,Fs2_B);                                   % Moment spring 2 exerted on body in frame B
 
-omega_d_state   = inv(J)*(M - cross(omega_state,J*omega_state));
+% Calculate angular acceleration of the body
+omega_dd        = parms.J\(M_1-M_2 -cross(omega_B,parms.J*omega_B));
 
-% Save all the symbolic expressions in function files
-matlabFunction((sigma_s1+sigma_s2),'File','subs_spring');
-matlabFunction((sigma_c1+sigma_c2),'File','subs_damp');
-matlabFunction((sigma_a),'File','subs_drag');
-matlabFunction(M,'File','subs_moments');
+% Calculate the derivatives of the euler parameters
+Q               = [q0 -q1 -q2  -q3; ...
+                   q1  q0 -q3   q2; ...
+                   q2  q3  q0  -q1; ...
+                   q3 -q2  q1   q0];
+qd              = 0.5*Q*[0;w_state]; 
+               
+% Put state derivative in one vector
+Xdd             = [xd_state;qd;xdd;omega_dd];
 
-%% Calculate the derivative of the omegas and put them in one big state variable
-
-q_state         = [x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]';
-matlabFunction(q_state,'File','subs_q_state','Vars',[x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]);
-
-dlambda         = 0.5*[q0 -q1 -q2 -q3;...
-                       q1 q0 -q3 q2;...
-                       q2 q3 q0 -q1;...
-                       q3 -q2 q1 q0]*[0;omega_state];
-Xdd_state        = [xd_state;dlambda;ddx;omega_d_state];
-matlabFunction(Xdd_state,'File','subs_Xdd_state','Vars',[k,l_0,b,x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]);
+% Get damping forces in N frame
+tic;
+matlabFunction(Xdd,'vars',{x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z},'File','subs_xdd');                                    % Create function handle for damping force vector
+toc;
 
 end
 
 %% Calculate spring-damper paramters
 
 function [k,l0,b] = spring_param_calc(parms)
-% Unpack variables for clarity
-m               = parms.m;
-J               = parms.J;
-r               = parms.r;
-c               = parms.c;
-A               = parms.A;
-zeta            = parms.zeta;
-h               = parms.h;
-w               = parms.w;
-g               = parms.g;
-rho             = parms.rho;
-cd              = parms.cd;
-p_s             = parms.p_s;
 
 %% A) Calculate k and L0 paramters
 % This can be done by using the principle of conservation of energy and
@@ -287,14 +284,14 @@ p_s             = parms.p_s;
 syms k l0
 
 % Calculate needed spring lengths
-l_t       = sqrt((0.5*w)^2 + (0.5*w-r)^2);
-l_b       = sqrt(h^2 + (0.5*w-r)^2);
+l_t       = sqrt((0.5*parms.w)^2 + (0.5*parms.w-parms.r)^2);
+l_b       = sqrt(parms.h^2 + (0.5*parms.w-parms.r)^2);
 
 % Conservation of energy equation
-eq_con      = k*(l_t - l0)^2+m*g*(0.5*w+h)-k*(l_b-l0)^2;
+eq_con      = k*(l_t - l0)^2+parms.m*parms.g*(0.5*parms.w+parms.h)-k*(l_b-l0)^2;
 
 % Force equation (Newtons second law of motion)
-eq_F        = 2*k*(l_b-l0)*cos(atan2((0.5*w-r),h))-5.8*m*g;
+eq_F        = 2*k*(l_b-l0)*cos(atan2((0.5*parms.w-parms.r),parms.h))-5.8*parms.m*parms.g;
 
 % Put equations in one vector
 eq          = [eq_con; eq_F];
@@ -305,5 +302,5 @@ k           = double(sol.k);
 l0          = double(sol.l0);
 
 % Calculate damping ratio
-b           = 2*zeta*sqrt(k*m);
+b           = 2*parms.zeta*sqrt(k*parms.m);
 end

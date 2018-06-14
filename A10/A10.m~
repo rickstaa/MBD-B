@@ -307,20 +307,7 @@ legend('E_p','E_e','E_t','E_r','E_p+E_e','E_t+E_r','Combined energy');
 ylabel('Energie [J]');
 xlabel('time [s]');
 
-%% Plot xomponents of the axis through the spring attachment sites expressed in the global fram
-figure;
-subplot(3,1,1);
-set(gca,'fontsize',14)
-title('Check for looping')
-plot(t,r_axis(:,1),'r');
-ylabel('r_{cx} [m]');
-subplot(3,1,2);
-plot(t,r_axis(:,2),'b');
-ylabel('r_{cy} [m]');
-subplot(3,1,3);
-plot(t,r_axis(:,3),'g');
-ylabel('r_{cz} [m]');
-
+%% Plot xomponents of the axis through the 
 %% FUNCTIONS
 
 %% Runge-Kuta numerical intergration function
