@@ -1,6 +1,6 @@
 %% MBD_B: Assignment 9 - Euler angles and the human arm
 %  Rick Staa (4511328)
-clear all; close all; clc;
+%clear all; close all; clc;
 fprintf('--- A9 ---\n');
 
 %% Set up needed symbolic parameters
@@ -36,11 +36,11 @@ parms.I2                     = diag([0.040 0.002 0.040]);               % Inerti
 parms.g                     = 9.81;                                     % [parms.m/s^2]
 
 %% Set Initial states
-alpha_0                     = deg2rad(110);
+alpha_0                     = deg2rad(30);
 beta_0                      = deg2rad(-20);
 gamma_0                     = deg2rad(-20);
 alpha_d_0                   = 0;
-beta_d_0                    = 0;
+beta_d_0                    = pi/2;
 gamma_d_0                   = 0;
 q0                          = [alpha_0;beta_0;gamma_0;alpha_d_0;beta_d_0;gamma_d_0];    % Put in initial state vector
 
