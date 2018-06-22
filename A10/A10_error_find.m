@@ -1,14 +1,13 @@
 %% MBD_B: Assignment 9 - Euler angles and the human arm
 %  Rick Staa (4511328)
-clear all; close all; clc;
+% clear all; close all; clc;
 fprintf('--- A10 ---\n');
 
-%% Simulation settings
-EOM_calc_bool               = 1;                                        % Set on 1 if you want to recalculate the EOM
-
 %% Intergration parameters
-parms.sim.sim_time          = 5;                                        % Intergration time
-parms.sim.dt                = 1e-3;                                     % Intergration step size
+parms.sim.sim_time          = 60;                                        % Intergration time
+parms.sim.dt                = 1e-3;                                      % Intergration step size
+parms.sim.nmax              = 10;                                        % Max number of coordinate projections
+parms.sim.tol               = 1e-12;                                     % Maximum allowable drift
 
 %% Model Parameters
 % Vehicle parameters
@@ -87,58 +86,8 @@ omega_z             = 0;
 x0                  = [x0;y0;z0;q0;q1;q2;q3;x_d;y_d;z_d;omega_x;omega_y;omega_z];
 
 %% Calculate equations of motion
-if (EOM_calc_bool == 1)
-    EOM_calc(parms);
-end
-
-%% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
-[t,x]                       = RK4_custom(x0,parms);
-
-%% FUNCTIONS
-
-%% Runge-Kuta numerical intergration function
-% This function calculates the motion of the system by means of a
-% Runge-Kuta numerical intergration. This function takes as inputs the
-% parameters of the system (parms), the EOM of the system (parms.EOM)
-% and the initial state.
-function [time,x] = RK4_custom(x0,parms)
-
-% Initialise variables
-time                = (0:parms.sim.dt:parms.sim.sim_time).';               % Create time array
-x                   = zeros(length(time),length(x0));                      % Create empty state array
-x(1,1:length(x0))   = x0;                                                  % Put initial state in array
-
-% Caculate the motion for the full simulation time by means of a
-% Runge-Kutta4 method
-
-% Perform intergration till end of set time
-for ii = 1:(size(time,1)-1)
+EOM_calc(parms);
     
-    % Add time constant
-    t = time(ii);
-    
-    % Perform RK 4
-    x_now_tmp           = x(ii,:);                                                                  % Create cell for subs function function
-    x_input             = num2cell(x(ii,:),1);                                                      % Add time to state
-    K1                  = [x_now_tmp(1,8:10),subs_xdd(x_input{:}).'];                                % Calculate the second derivative at the start of the step
-    x1_tmp              = x_now_tmp + (parms.sim.dt*0.5)*K1;                                             % Create cell for subs function function
-    x1_input            = num2cell(x1_tmp,1);                                                       % Add time to state
-    K2                  = [x1_tmp(1,8:10),subs_xdd(x1_input{:}).'];                                  % Calculate the second derivative halfway the step
-    x2_tmp              = x_now_tmp + (parms.sim.dt*0.5)*K2;                                             % Refine value calculation with new found derivative
-    x2_input            = num2cell(x2_tmp,1);                                                       % Add time to state
-    K3                  = [x2_tmp(1,8:10),subs_xdd(x2_input{:}).'];                                  % Calculate new derivative at the new refined location
-    x3_tmp              = x_now_tmp + (parms.sim.dt)*K3;                                                 % Calculate state at end step with refined derivative
-    x3_input            = num2cell(x3_tmp,1);                                                       % Add time to state
-    K4                  = [x3_tmp(1,8:10),subs_xdd(x3_input{:}).'];                                  % Calculate last second derivative
-    x(ii+1,:)           = x_now_tmp + (parms.sim.dt/6)*(K1+2*K2+2*K3+K4);                                % Perform euler intergration step
-    
-    % Correct for intergration drift (Renormalise the axis of rotation)
-    q_next              = x(ii+1,4:7);
-    x(ii+1,4:7)         = q_next/norm(q_next);
-    
-end
-end
-
 %% Calculate (symbolic) Equations of Motion four our setup
 function EOM_calc(parms)
 
@@ -183,35 +132,31 @@ omega_state     = [omega_x;omega_y;omega_z];
 %% Calculate Rotation Matrix
 
 R_B_N = [q0^2+q1^2-q2^2-q3^2, 2*(q1*q2-q0*q3),      2*(q1*q3-q0*q2);     ...
-         2*(q2*q1-q0*q3),     q0^2-q1^2+q2^2-q3^2 , 2*(q2*q3-q0*q1);     ...
-         2*(q3*q1-q0*q2),     2*(q3*q2-q0*q1),      q0^2-q1^2-q2^2+q3^2];
+    2*(q2*q1-q0*q3),     q0^2-q1^2+q2^2-q3^2 , 2*(q2*q3-q0*q1);     ...
+    2*(q3*q1-q0*q2),     2*(q3*q2-q0*q1),      q0^2-q1^2-q2^2+q3^2];
 
 matlabFunction(R_B_N,'File','subs_R_B_N');
 
 %% Calculate Spring contribution to virtual work
-r_c             = [x;y;z] + R_B_N*[0.01;-0.01;0.1]; 
-r_s1            = r_c + R_B_N*[0;-1;0];            
-r_s2            = r_c + R_B_N*[0;1;0];            
+r_c             = [x;y;z] + R_B_N*-parms.c;
+r_s1            = r_c + R_B_N*-parms.p_s;
+r_s2            = r_c + R_B_N*parms.p_s;
 
 % Create vetors along the spring
-l_s1            = r_s1 - [0; -w/2; h]; 
-l_s2            = r_s2 - [0; w/2; h]; 
+l_s1            = r_s1 - [0; -w/2; h];
+l_s2            = r_s2 - [0; w/2; h];
 
 % Calculate delta spring lenght
-l_s2            = sqrt(sum(l_s2.^2)) - l_0;  
+l_s2            = sqrt(sum(l_s2.^2)) - l_0;
 l_s1            = sqrt(sum(l_s1.^2)) - l_0;
 
 % Calculate spring forces
-sigma_s1        = k*l_s1; 
-sigma_s2        = k*l_s2; 
-
-% Storing as functions for later
-matlabFunction(l_s1,'File','subs_l_s1');
-matlabFunction(l_s2,'File','subs_l_s2');
+sigma_s1        = k*l_s1;
+sigma_s2        = k*l_s2;
 
 %% Damping Components
-sigma_c1        = b*jacobian(l_s1,x_state)*xd_state; 
-sigma_c2        = b*jacobian(l_s2,x_state)*xd_state; 
+sigma_c1        = b*jacobian(l_s1,x_state)*xd_state;
+sigma_c2        = b*jacobian(l_s2,x_state)*xd_state;
 
 %% Air Drag
 sigma_a         = 0.5*rho*A*c_d*sqrt(sum(xd_state.^2))*xd_state;
@@ -219,46 +164,56 @@ sigma_a         = 0.5*rho*A*c_d*sqrt(sum(xd_state.^2))*xd_state;
 %% Add the contributions of all forces together
 
 % External intertial forces
-F_ext           = [0;0;-m*g]; 
+F_ext           = [0;0;-m*g];
 
 % Spring, damper and drag forces
 F               = [F_ext - sigma_s1*jacobian(l_s1,x_state)' - sigma_s2*jacobian(l_s2,x_state)' - ...
-                   sigma_c1*jacobian(l_s1,x_state)' - sigma_c2*jacobian(l_s2,x_state)' - sigma_a];
+    sigma_c1*jacobian(l_s1,x_state)' - sigma_c2*jacobian(l_s2,x_state)' - sigma_a];
 
 %% Now finaly calculate the linear accelerations by means of gaussian elimination
 M               = diag([m m m]);
-ddx             = inv(M)*F; 
+xdd_lin         = inv(M)*F;
 
 %% Now lets find the angular accelerations
+% Calculate forces
 F1              = sigma_s1*jacobian(l_s1,x_state).' + sigma_c1*jacobian(l_s1,x_state).';
-r1              = [0.01;-0.01;-0.1] + [0;-1;0];
-
 F2              = sigma_s2*jacobian(l_s2,x_state).' + sigma_c2*jacobian(l_s2,x_state).';
-r2              = [0.01;-0.01;-0.1] + [0;1;0];
 
+% Calculate moment arms
+r1              = -parms.c-parms.p_s;
+r2              = -parms.c+parms.p_s;
+
+% Calculate moments
 M               = cross(r1,R_B_N'*F1) + cross(r2,R_B_N'*F2);
 
 %% Calculate angular accelerations
 
 omega_d_state   = inv(J)*(M - cross(omega_state,J*omega_state));
 
+%% Calculate the derivative of the omegas and put them in one big state variable
+X_state         = [x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z].';
+
+dlambda         = 0.5*[q0 -q1 -q2 -q3;...
+    q1 q0 -q3 q2;...
+    q2 q3 q0 -q1;...
+    q3 -q2 q1 q0]*[0;omega_state];
+Xdd             = [xd_state;dlambda;xdd_lin;omega_d_state];
+
+%% Calculate the constraint
+D               = q0^2 + q1^2 + q2^2 + q3^2 - 1;
+Dd              = jacobian(D,X_state);
+
 % Save all the symbolic expressions in function files
-matlabFunction((sigma_s1+sigma_s2),'File','subs_spring');
-matlabFunction((sigma_c1+sigma_c2),'File','subs_damp');
-matlabFunction((sigma_a),'File','subs_drag');
-matlabFunction(M,'File','subs_moments');
-
-%% Calculate the derivative of the omegas and 
-
-q_state = [x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]';
-matlabFunction(q_state,'File','subs_q_state','Vars',[x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]);
-
-dlambda = 0.5*[q0 -q1 -q2 -q3;...
-               q1 q0 -q3 q2;...
-               q2 q3 q0 -q1;...
-               q3 -q2 q1 q0]*[0;omega_state];
-dq_state = [xd_state;dlambda;ddx;omega_d_state];
-matlabFunction(dq_state,'File','subs_dq_state','Vars',[k,l_0,b,x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]);
+matlabFunction(D,'File','subs_D','vars',[q0 q1 q2 q3]);
+matlabFunction(Dd,'File','subs_Dd','vars',[q0 q1 q2 q3]);
+matlabFunction(l_s1,'File','subs_l_s1','vars',[l_0,x,y,z,q0,q1,q2,q3]);
+matlabFunction(l_s2,'File','subs_l_s2','vars',[l_0,x,y,z,q0,q1,q2,q3]);
+matlabFunction((sigma_s1+sigma_s2),'File','subs_F_spring','vars',[k,l_0,x,y,z,q0,q1,q2,q3]);
+matlabFunction((sigma_c1+sigma_c2),'File','subs_F_damp','vars',[b,x,y,z,q0,q1,q2,q3,x_d,y_d,z_d]);
+matlabFunction((sigma_a),'File','subs_F_drag');
+matlabFunction(M,'File','subs_M','vars',[k,l_0,b,x,y,z,q0,q1,q2,q3,x_d,y_d,z_d]);
+matlabFunction(X_state,'File','subs_X_state','Vars',[x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]);
+matlabFunction(Xdd,'File','subs_Xdd','Vars',[k,l_0,b,x,y,z,q0,q1,q2,q3,x_d,y_d,z_d,omega_x,omega_y,omega_z]);
 
 end
 
