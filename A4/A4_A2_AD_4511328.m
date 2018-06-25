@@ -1,64 +1,63 @@
 %% MBD_B: Assignment 4 - Double pendulum systemetic approach
 %  Rick Staa (4511328)
 %  Last edit: 19/03/2018
-% Question A: Redoo assignment 1
+% Question A: Redoo assignment 2
 
 clear all; close all; clc;
 fprintf('--- A4_a ---\n');
-fprintf('First lets redo A1 - In this case there are no constraints\n')
+fprintf('First lets redo A2 (a/d) - In this case there are no constraints\n')
 
 %% Script settings and parameters
-variable              = {'x1dp' 'y1dp' 'phi1dp' 'x2dp' 'y2dp' 'phi2dp'}';
+variable              = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
 
 %% Parameters
 % Segment 1
-parms.L               = 0.55;                                             % [parms.m]
-parms.w               = 0.05;                                             % [parms.m]
-parms.t               = 0.004;                                            % [parms.m]
-parms.p               = 1180;                                             % [kg/parms.m^3]
-parms.m               = parms.p * parms.w * parms.t * parms.L;            % [kg]
-parms.I               = (1/12) * parms.m * parms.L^2;                     % [kg*parms.m^2]
+parms.L         = 0.55;                                             % [parms.m]
+parms.w         = 0.05;                                             % [parms.m]
+parms.t         = 0.004;                                            % [parms.m]
+parms.p         = 1180;                                             % [kg/parms.m^3]
+parms.m         = parms.p * parms.w * parms.t * parms.L;            % [kg]
+parms.I         = (1/12) * parms.m * parms.L^2;                     % [kg*parms.m^2]
 
 % World parameters
-parms.g               = 9.81;                                             % [parms.m/s^2]
+parms.g         = 9.81;                                             % [parms.m/s^2]
 
 %% Calculate state_dp for initial states
-% A2 - a:
-% A1 - b
+% A2 - b
 x0              = [0.5*pi 0.5*pi 0 0];
-xdp_A1_b        = double(state_calc(x0,parms));
-fprintf('\nThe result for A1 - b is:\n');
-disp(table(variable,xdp_A1_b));
+xdd.A2.b        = double(state_calc(x0,parms));
+fprintf('\nThe result for A2 - b is:\n');
+disp(table(variable,xdd.A2.b));
 
-% A1 - c
+% A2 - c
 x0              = [0 0 0 0];
-xdp_A1_c        = double(state_calc(x0,parms));
-fprintf('\nThe result for A1 - c is:\n');
-disp(table(variable,xdp_A1_c));
+xdd.A2.c        = double(state_calc(x0,parms));
+fprintf('\nThe result for A2 - c is:\n');
+disp(table(variable,xdd.A2.c));
 
-% A1 - d
+% A2 - d
 w               = (60/60)*2*pi;             % Convert to rad/s
 x0              = [0 0 w w];
-xdp_A1_d        = double(state_calc(x0,parms));
-fprintf('\nThe result for A1 - d is:\n');
-disp(table(variable,xdp_A1_d));
+xdd.A2.d        = double(state_calc(x0,parms));
+fprintf('\nThe result for A2 - d is:\n');
+disp(table(variable,xdd.A2.d));
 
 % Calculate velocities
-x_p_A1_d        = [-(parms.L/2)*sin(x0(1))*x0(3); ...
+xd.d            = [-(parms.L/2)*sin(x0(1))*x0(3); ...
                     (parms.L/2)*cos(x0(1))*x0(3); ...
                     -(parms.L/2)*sin(x0(1))*x0(3) - (parms.L/2)*sin(x0(1))*x0(3) - (parms.L/2)*sin(x0(2))*x0(4); ...
                     (parms.L/2)*cos(x0(1))*x0(3) + (parms.L/2)*cos(x0(1))*x0(3) + (parms.L/2)*cos(x0(2))*x0(4)];
 
                 fprintf('The accompaning velocities are:\n');
-disp(table({'x1p';'y1p';'x2p';'y2p'},x_p_A1_d));
+disp(table({'x1p';'y1p';'x2p';'y2p'},xd.d));
 
 %% Express COM in generalised coordinates
-function xdp = state_calc(x0,parms)
+function xdd = state_calc(x0,parms)
 syms phi1 phi2 phi1p phi2p 
 
 % Create generalized coordinate vectors
 q               = [phi1; phi2];
-qp              = [phi1p; phi2p];
+qd              = [phi1p; phi2p];
 
 % COM of the bodies expressed in generalised coordinates
 x1              = (parms.L/2)*cos(phi1);
@@ -69,35 +68,35 @@ y2              = y1 + (parms.L/2)*sin(phi1) + (parms.L/2) * sin(phi2);
 % Calculate derivative of COM expressed in generalised coordinates (We need this for the energy equation)
 x               = [x1;y1;phi1;x2;y2;phi2];
 Jx_q            = simplify(jacobian(x,q));
-xp              = Jx_q*qp;
+xd              = Jx_q*qd;
 
 %% Compute energies
-T               = 0.5*xp.'*diag([parms.m;parms.m;parms.I;parms.m;parms.m;parms.I])*xp;           % Kinetic energy
-V               = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x);                    % Potential energy
+T               = 0.5*xd.'*diag([parms.m;parms.m;parms.I;parms.m;parms.m;parms.I])*xd;           % Kinetic energy
+V               = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x);                                % Potential energy
 
 %% Calculate the terms of the jacobian
 Q                = 0;                           % Non-conservative forces
 
 % Partial derivatives of Kinetic energy
 T_q             = simplify(jacobian(T,q));
-T_qp            = simplify(jacobian(T,qp));
-T_qpqp          = simplify(jacobian(T_qp,qp));
-T_qpq           = simplify(jacobian(T_qp,q));
+T_qd            = simplify(jacobian(T,qd));
+T_qdqd          = simplify(jacobian(T_qd,qd));
+T_qdq           = simplify(jacobian(T_qd,q));
 
 % Partial derivatives of Potential energy
 V_q             = simplify(jacobian(V,q));
-V_qp            = simplify(jacobian(V,qp));
-V_qpqp          = simplify(jacobian(V_qp,qp));
+V_qd            = simplify(jacobian(V,qd));
+V_qdqd          = simplify(jacobian(V_qd,qd));
 
 % Make matrix vector product
-M                = T_qpqp;
-F                = Q + T_q' - V_q' - T_qpq*qp;
+M                = T_qdqd;
+F                = Q + T_q' - V_q' - T_qdq*qd;
 
 % Solve Mqdp=F to get the accelerations
-qdp              = inv(M)*F;
+qdp              = M\F;
 
 %% Get back to COM coordinates
-xdp              = simplify(jacobian(xp,qp))*qdp+simplify(jacobian(xp,q))*qp;
-xdp              = subs(xdp,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)});
+xdd              = simplify(jacobian(xd,qd))*qdp+simplify(jacobian(xd,q))*qd;
+xdd              = subs(xdd,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)});
 
 end

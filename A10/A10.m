@@ -4,7 +4,7 @@
 fprintf('--- A10 ---\n');
 
 %% Simulation settings
-EOM_calc_bool               = 0;                                         % Set on 1 if you want to recalculate the EOM
+EOM_calc_bool               = 1;                                         % Set on 1 if you want to recalculate the EOM
 
 %% Intergration parameters
 parms.sim.sim_time          = 60;                                        % Intergration time
@@ -96,9 +96,9 @@ end
 %% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
 [t,x,error,r_axis]         = RK4_custom(x0,parms);
 
-%% Play sound
-load gong
-sound(y,Fs)
+% %% Play sound
+% load gong
+% sound(y,Fs)
 
 %% Optimize k b and c values
 % Try to find the optimal values that get the highest height

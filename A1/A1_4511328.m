@@ -1,56 +1,57 @@
-%% MBD_B: Assignment 1 - Double pendulum equations of motion and initial conditions.
+%% MBD_B: Assignment 1 - Double pendulum EOM using FBD and newton-euler
 %  Rick Staa (4511328)
 %  Last edit: 24/02/2018
 clear all; close all; clc;
+fprintf('--- A1 ---\n');
 
 %% Parameters
 % Segment 1
-parms.L1     = 0.55;                     % [m]
-parms.w1     = 0.05;                     % [m]
-parms.t1     = 0.004;                    % [m]
-parms.p1     = 1180;                     % [kg/m^3]
-parms.m1     = parms.p1 * parms.w1 * parms.t1 * parms.L1;          % [kg]
-parms.I1     = (1/12) * parms.m1 * parms.L1^2;                     % [kg*m^2]
+parms.L1     = 0.55;                                        % [m]
+parms.w1     = 0.05;                                        % [m]
+parms.t1     = 0.004;                                       % [m]
+parms.p1     = 1180;                                        % [kg/m^3]
+parms.m1     = parms.p1 * parms.w1 * parms.t1 * parms.L1;   % [kg]
+parms.I1     = (1/12) * parms.m1 * parms.L1^2;              % [kg*m^2]
 
 % Segment 2
-parms.L2     = 0.55;                     % [m]
-parms.w2     = 0.05;                     % [m]
-parms.t2     = 0.004;                    % [m]
-parms.p2     = 1180;                     % [m]
-parms.m2     = parms.p2 * parms.w2 * parms.t2 * parms.L2;         % [kg]
-parms.I2     = (1/12) * parms.m2 * parms.L2^2;                    % [kg*m^2]
+parms.L2     = 0.55;                                        % [m]
+parms.w2     = 0.05;                                        % [m]
+parms.t2     = 0.004;                                       % [m]
+parms.p2     = 1180;                                        % [m]
+parms.m2     = parms.p2 * parms.w2 * parms.t2 * parms.L2;   % [kg]
+parms.I2     = (1/12) * parms.m2 * parms.L2^2;              % [kg*m^2]
 
 % World parameters
-parms.g      = 9.81;                     % [m/s^2]
+parms.g      = 9.81;                                        % [m/s^2] 
 
 %% Initial states
 
 % b).
-x0           = [0.5*pi 0.5*pi 0 0];      % [phi_1 phi_2 phi_1_p phi_2_p];
-x_dp.b       = state_calc(x0,parms);
+x0           = [0.5*pi 0.5*pi 0 0];                         % [phi_1 phi_2 phi_1_p phi_2_p];
+x_dd.b       = state_calc(x0,parms);
 
 % c).
-x0           = [0 0 0 0];                % [phi_1 phi_2 phi_1_p phi_2_p];
-x_dp.c       = state_calc(x0,parms);
+x0           = [0 0 0 0];                                   % [phi_1 phi_2 phi_1_p phi_2_p];
+x_dd.c       = state_calc(x0,parms);
 
 % d).
-w            = (60/60)*2*pi;             % Convert to rad/s
+w            = (60/60)*2*pi;                                % Convert to rad/s
 x0           = [0 0 w w];
-x_dp.d       = state_calc(x0,parms);
+x_dd.d       = state_calc(x0,parms);
 
 % Calculate velocities
-x1_p         = -(parms.L1/2)*sin(x0(1))*x0(3);
-y1_p         =  (parms.L1/2)*cos(x0(1))*x0(3);
-x2_p         = x1_p - (parms.L1/2)*sin(x0(1))*x0(3) - (parms.L2/2)*sin(x0(2))*x0(4);
-y2_p         = y1_p + (parms.L1/2)*cos(x0(1))*x0(3) + (parms.L2/2)*cos(x0(2))*x0(4);
+x1_d         = -(parms.L1/2)*sin(x0(1))*x0(3);
+y1_d         =  (parms.L1/2)*cos(x0(1))*x0(3);
+x2_d         = x1_d - (parms.L1/2)*sin(x0(1))*x0(3) - (parms.L2/2)*sin(x0(2))*x0(4);
+y2_d         = y1_d + (parms.L1/2)*cos(x0(1))*x0(3) + (parms.L2/2)*cos(x0(2))*x0(4);
 
 % Put in table
-results      = [x_dp.b x_dp.c x_dp.d];
-x_p.d        = [x1_p y1_p x2_p y2_p];
+results      = [x_dd.b x_dd.c x_dd.d];
+x_d.d        = [x1_d y1_d x2_d y2_d];
 
 %% Functions
 
-function [x_dp] = state_calc(x0,parms)
+function [x_dd] = state_calc(x0,parms)
 % Equations of motions + Contraints in vector matrix form
 
 % Get variables out of struct and initial state
@@ -85,6 +86,6 @@ B           = [          1                  0           (L1/2)*sin(phi_1)       
                          0                 -1          -(L1/2)*cos(phi_1)         0         1  -(L2/2)*cos(phi_2)];
 
 % Calculate state out of Ax=b and the initial state
-x_dp = [M A;B zeros(size(B,1),size(A,2))]\b;
+x_dd = [M A;B zeros(size(B,1),size(A,2))]\b;
 
 end

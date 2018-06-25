@@ -1,0 +1,7 @@
+== OVERVIEW ==
+A2-(A/D): EOM double pendulum no constraints
+A2-(E,f): EOM double pendulum slider constraint
+A2-(G): EOM double pendulum slider + constraint force
+A3-(A): EOM double pendulum + passive element
+A3-(B): EOM double pendulum + active element
+A3-(C): EOM double pendulum + impulse action
