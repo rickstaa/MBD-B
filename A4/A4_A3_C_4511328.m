@@ -2,8 +2,7 @@
 %  Rick Staa (4511328)
 %  Last edit: 19/03/2018
 % Question A: Redoo assignment 1
-
-% clear all; close all; clc;
+clear all; close all; clc;
 fprintf('--- A4_a ---\n');
 fprintf('Now lets redo A3 - In this case there is an impact constrant\n')
 
@@ -22,8 +21,8 @@ parms.omega           = -120*(2*pi/60);
 
 % World parameters
 parms.g               = 9.81;                                             % [parms.m/s^2]
-parms.omega           = -120*(2*pi/60);
-parms.e               = 1;
+parms.omega           = 120*(2*pi/60);
+parms.e               = 0;
 
 %% Calculate the initial velocities
 x0(1)                 = 0.5*pi;
@@ -36,34 +35,43 @@ x0(4)                 = parms.omega;
 qdd.A3.c              = qdd_tmp;
 xdd.A3.c              = xdd_tmp;
 
+% Calculate additional info
+fprintf('\nThe result for A3 - (e = %0.1f) are:\n\n',parms.e);
+disp(table(variable,xdd.A3.c));
+disp(table({'phi1dd','phi2dd','lambda1','lambda2'}',qdd.A3.c));
 
 %% Compute the derivatives of constraint matrix
 function [qdd, xdd] = state_calc(x0,parms)
+
 % Create symbolic variables
-syms phi1 phi2 phi1p phi2p t
+syms phi1 phi2 phi1p phi2p
 
 % Define genaralized coordinates
 q = [phi1 phi2]';
-qp = [phi1p phi2p]';
+qd = [phi1p phi2p]';
 
 % Ex[ress coordinatates of CM in generalised coordinates
 x1              = (parms.L/2)*cos(phi1);
 y1              = (parms.L/2)*sin(phi1);
-x2              = x1 + (parms.L/2)*cos(phi1) + (parms.L/2) * cos(phi2);
-y2              = y1 + (parms.L/2)*sin(phi1) + (parms.L/2) * sin(phi2);
+x2              = parms.L*cos(phi1) + (parms.L/2) * cos(phi2);
+y2              = parms.L*sin(phi1) + (parms.L/2) * sin(phi2);
 x               = [x1;y1;phi1;x2;y2;phi2];
 Jx_q            = simplify(jacobian(x,q'));
-xd              = Jx_q*qp;
+xd              = Jx_q*qd;
 
 %% Set constraints
-C               = [parms.L*cos(phi1);parms.L*cos(phi1)+parms.L*cos(phi2);];
+C               = [parms.L*cos(phi1); ...
+                   parms.L*cos(phi1)+parms.L*cos(phi2)];
 Cq              = simplify(jacobian(C,q'));
 
 %% Define Matrices
-M               = Jx_q.'*diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I])*Jx_q;        % Reduced generalised M matrix
+M               = Jx_q.'*diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I])*Jx_q;                                                        % Reduced generalised M matrix
 M_big           = [M Cq.';Cq zeros(2,2)];                                                     % Full M matrix
-F               = [M*x0(3:4).'; -parms.e*Cq*x0(3:4).'];                                       % Impact Forces
-qdd             = M_big\F;
+F               = [M*x0(3:4).'; -parms.e*Cq*x0(3:4).'];                                       % We need the initial velocities
+qdd             = M_big\F;                                                                    % This vector contains phi1dd, phi2dd, Lambda1 and lambda2
+
+
+% Substitude initial state
 qdd             = double(subs(qdd, [phi1,phi2,phi1p,phi2p],[x0(1),x0(2),x0(3),x0(4)]));
 xdd             = simplify(jacobian(x,q'))*qdd(1:2);
 xdd             = double(subs(xdd, [phi1,phi2,phi1p,phi2p],[x0(1),x0(2),x0(3),x0(4)]));       % Impact velocities

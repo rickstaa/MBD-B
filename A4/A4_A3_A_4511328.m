@@ -2,8 +2,7 @@
 %  Rick Staa (4511328)
 %  Last edit: 19/03/2018
 % Question A: Redoo assignment 3
-
-% clear all; close all; clc;
+clear all; close all; clc;
 fprintf('--- A4_a ---\n');
 fprintf('Now lets redo A3 (a) - In this case we have a passive element\n')
 
@@ -25,13 +24,16 @@ parms.k               = (15/2)*parms.m*parms.g/parms.L;                   % stif
 
 %% Calculate state_dp for initial states
 % A3 - a
-x0              = [0.5*pi 0.5*pi 0 0];
-xdd.A3.a        = double(state_calc(x0,parms));
+x0                 = [0.5*pi 0.5*pi 0 0];
+[qdd_tmp, xdd_tmp] = state_calc(x0,parms);
+xdd.A3.a           = double(xdd_tmp);
+qdd.A3.a           = double(qdd_tmp);
 fprintf('\nThe result for A3 - a is:\n');
 disp(table(variable,xdd.A3.a));
+disp(table({'phi1dd','phi2dd','lambda1','lambda2'}',qdd.A3.a));
 
 %% Express COM in generalised coordinates
-function xdd = state_calc(x0,parms)
+function [qdd, xdd] = state_calc(x0,parms)
 syms phi1 phi2 phi1p phi2p 
 
 % Create generalized coordinate vectors
@@ -41,8 +43,8 @@ qd              = [phi1p; phi2p];
 % COM of the bodies expressed in generalised coordinates
 x1              = (parms.L/2)*cos(phi1);
 y1              = (parms.L/2)*sin(phi1);
-x2              = x1 + (parms.L/2)*cos(phi1) + (parms.L/2) * cos(phi2);
-y2              = y1 + (parms.L/2)*sin(phi1) + (parms.L/2) * sin(phi2);
+x2              = parms.L*cos(phi1) + (parms.L/2) * cos(phi2);
+y2              = parms.L*sin(phi1) + (parms.L/2) * sin(phi2);
 
 % Calculate derivative of COM expressed in generalised coordinates (We need this for the energy equation)
 x               = [x1;y1;phi1;x2;y2;phi2];
@@ -53,11 +55,11 @@ xd              = Jx_q*qd;
 T               = 0.5*xd.'*diag([parms.m;parms.m;parms.I;parms.m;parms.m;parms.I])*xd;          % Kinetic energy
 
 % Now calculate spring potential energy
-Ls              = sqrt((x1 + (parms.L/6)*cos(phi1) + parms.L/2)^2 + (y1 + (parms.L/6)*sin(phi1))^2) - 2*(parms.L/3);
-Vs              = 0.5*parms.k*(Ls)^2;                                                           % The potential energy due to the spring
+Cs              = sqrt((x1 + (parms.L/6)*cos(phi1) + parms.L/2)^2 + (y1 + (parms.L/6)*sin(phi1))^2) - 2*(parms.L/3);
+Cs              = 0.5*parms.k*(Cs)^2;                                                           % The potential energy due to the spring
 
 % Add to gravity potential energy
-V               = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x)+Vs;                                % Potential energy
+V               = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x)+Cs;                            % Potential energy
 
 %% Calculate the terms of the jacobian
 
@@ -73,17 +75,19 @@ V_qd            = simplify(jacobian(V,qd));
 V_qdqd          = simplify(jacobian(V_qd,qd));
 
 % Non-conservative forces
-Q                = Jx_q.'*[0 10 10*(parms.L/2)*cos(phi1) 0 0 0].';     
+% Q                = Jx_q.'*[0 10 10*(parms.L/2)*cos(phi1) 0 0 0].';     
+Q                = 0;
 
 % Make matrix vector product
 M                = T_qdqd;
 F                = Q + T_q' - V_q' - T_qdq*qd;
 
 % Solve Mqdp=F to get the accelerations
-qdp              = M\F;
+qdd              = M\F;
 
 %% Get back to COM coordinates
-xdd              = simplify(jacobian(xd,qd))*qdp+simplify(jacobian(xd,q))*qd;
-xdd              = subs(xdd,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)});
+qdd              = double(subs(qdd, [phi1,phi2,phi1p,phi2p],[x0(1),x0(2),x0(3),x0(4)]));
+xdd              = simplify(jacobian(xd,qd))*qdd+simplify(jacobian(xd,q))*qd;
+xdd              = double(subs(xdd,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)}));
 
 end

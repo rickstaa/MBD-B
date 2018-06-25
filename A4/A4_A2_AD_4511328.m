@@ -2,7 +2,6 @@
 %  Rick Staa (4511328)
 %  Last edit: 19/03/2018
 % Question A: Redoo assignment 2
-
 clear all; close all; clc;
 fprintf('--- A4_a ---\n');
 fprintf('First lets redo A2 (a/d) - In this case there are no constraints\n')
@@ -48,7 +47,7 @@ xd.d            = [-(parms.L/2)*sin(x0(1))*x0(3); ...
                     -(parms.L/2)*sin(x0(1))*x0(3) - (parms.L/2)*sin(x0(1))*x0(3) - (parms.L/2)*sin(x0(2))*x0(4); ...
                     (parms.L/2)*cos(x0(1))*x0(3) + (parms.L/2)*cos(x0(1))*x0(3) + (parms.L/2)*cos(x0(2))*x0(4)];
 
-                fprintf('The accompaning velocities are:\n');
+fprintf('The accompaning velocities are:\n');
 disp(table({'x1p';'y1p';'x2p';'y2p'},xd.d));
 
 %% Express COM in generalised coordinates

@@ -2,8 +2,7 @@
 %  Rick Staa (4511328)
 %  Last edit: 19/03/2018
 % Question A: Redoo assignment 1
-
-% clear all; close all; clc;
+clear all; close all; clc;
 fprintf('--- A4_a ---\n');
 fprintf('First lets redo A3 - In this case there are no constraints\n')
 
@@ -22,72 +21,63 @@ parms.omega           = -120*(2*pi/60);
 
 % World parameters
 parms.g               = 9.81;                                             % [parms.m/s^2]
-parms.k                      = (15/2)*parms.m*parms.g/parms.L;            % stiffness of spring
+parms.omega           = -120*(2*pi/60);
 
-%% Calculate state_dp for initial states
-% A2 - a:
-% A1 - g
-x0              = [0.5*pi 0.5*pi 0 0];
-xdp_A1_e        = double(state_calc(x0,parms));
-fprintf('\nThe result for A3 - a is:\n');
-disp(table(variable,xdp_A1_e));
+%% Calculate the accelerations
 
+x0(1) = 0.5*pi;
+x0(2) = 0.5*pi;
+x0(3) = parms.omega;
+x0(4) = parms.omega;
 
-%% Express COM in generalised coordinates
-function xdp = state_calc(x0,parms)
-syms phi1 phi2 phi1p phi2p t
+[xdd_tmp,Motor_torque] = state_calc(x0,parms);
+xdd.A3.b               = xdd_tmp;
+disp(table(variable,xdd.A3.b));
 
-% Create generalized coordinate vectors
-q               = [phi1; phi2];
-qp              = [phi1p; phi2p];
+%% Compute the derivatives of constraint matrix
+function [xdd, Motor_torque] = state_calc(x0,parms)
+% Create symbolic variables
+syms phi1 phi2 phi1d phi2d t
 
-% COM of the bodies expressed in generalised coordinates
+% Define genaralized coordinates
+q = [phi1 phi2]';
+qd = [phi1d phi2d]';
+
+% Ex[ress coordinatates of CM in generalised coordinates
 x1              = (parms.L/2)*cos(phi1);
 y1              = (parms.L/2)*sin(phi1);
-x2              = x1 + (parms.L/2)*cos(phi1) + (parms.L/2) * cos(phi2);
-y2              = y1 + (parms.L/2)*sin(phi1) + (parms.L/2) * sin(phi2);
-
-% Calculate derivative of COM expressed in generalised coordinates (We need this for the energy equation)
+x2              = parms.L*cos(phi1) + (parms.L/2) * cos(phi2);
+y2              = parms.L*sin(phi1) + (parms.L/2) * sin(phi2);
 x               = [x1;y1;phi1;x2;y2;phi2];
-Jx_q            = simplify(jacobian(x,q));
-xp              = Jx_q*qp;
+Jx_q            = simplify(jacobian(x,q'));
+xd              = Jx_q*qd;
 
-% Now add motor constraint
-Cm = phi1 - parms.omega*t;
-Cm_q = simplify(jacobian(Cm,q)); 
-Cm_qp = Cm_q*qp;
+%% Constraints
+C = phi1 - parms.omega*t;
+Cq = simplify(jacobian(C,q'));
+Cd = Cq*qd;
+Cdd = simplify(jacobian(Cd,q')*qd);
 
-% Now calculate the convective term
-Cm_qpqp = simplify(jacobian(Cm_qp,q)*qp);
+%% Calculate potential en kinetic energy
+T = 0.5*xd'*diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I])*xd;
+V = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x);
 
-%% Compute energies
-T               = 0.5*xp.'*diag([parms.m;parms.m;parms.I;parms.m;parms.m;parms.I])*xp;           % Kinetic energy
+%% Building the Lagrance equations of motion
+% See page 50
+Tqd = simplify(jacobian(T,qd'))';
+Tqdqd = simplify(jacobian(Tqd,qd'));
+Tqdq = simplify(jacobian(Tqd,q'))*qd;
+Tq = simplify(jacobian(T,q'))';
+Vq = simplify(jacobian(V,q'))';
+M = [Tqdqd Cq';Cq 0];
+F = [-Tqdq + Tq - Vq; -Cdd];
 
-% Add to gravity potential energy
-V               = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x);                                % Potential energy
+% Calculate acceleration
+qdd = M\F;
+qdd = (subs(qdd, [phi1,phi2,phi1d,phi2d],[x0(1),x0(2),x0(3),x0(4)]));
 
-%% Calculate the terms of the jacobian
-
-% Partial derivatives of Kinetic energy
-T_q             = simplify(jacobian(T,q));
-T_qp            = simplify(jacobian(T,qp));
-T_qpqp          = simplify(jacobian(T_qp,qp));
-T_qpq           = simplify(jacobian(T_qp,q));
-
-% Partial derivatives of Potential energy
-V_q             = simplify(jacobian(V,q));
-V_qp            = simplify(jacobian(V,qp));
-V_qpqp          = simplify(jacobian(V_qp,qp));
-
-% Make matrix vector product
-M                = [T_qpqp Cm_q';Cm_q 0];
-F                = [T_q' - V_q' - T_qpq*qp;-Cm_qpqp];
-
-% Solve Mqdp=F to get the accelerations
-qdp              = inv(M)*F;
-
-%% Get back to COM coordinates
-xdp              = simplify(jacobian(xp,qp))*qdp+simplify(jacobian(xp,q))*qp;
-xdp              = subs(xdp,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)});
-
+%% Express back in  CM coordinates
+xdd = simplify(jacobian(xd,qd'))*qdd(1:2) + simplify(jacobian(xd,q'))*qd;
+Motor_torque = double(qdd(3));
+xdd = double(subs(xdd, [phi1,phi2,phi1d,phi2d],[x0(1),x0(2),x0(3),x0(4)]));
 end
