@@ -3,6 +3,9 @@
 clear all; close all; %clc;
 fprintf('--- A9 ---\n');
 
+%% Script settings
+parms.accuracy_bool         = 0;            % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+
 %% Set up needed symbolic parameters
 % Create needed symbolic variables
 syms alpha beta gamma alpha_d beta_d gamma_d alpha_dd beta_dd gamma_dd
@@ -262,12 +265,12 @@ r2_I            = R_alpha*R_beta*[0;0;-parms.L1]+R_alpha*R_beta*R_gamma*[0;0.5*p
 % Create mass matrix
 parms.M         = diag([parms.m1,parms.m1,parms.m1,parms.m2,parms.m2,parms.m2]);
 
-% - Uncomment when you want full symbolic expression - 
-syms m1 m2 Ix1 Iy1 Iz1 Ix2 Iy2 Iz2
-parms.M        = diag([m1,m1,m1,m2,m2,m2]);
-parms.I1       = [Ix1 0 0;0 Iy1 0;0 0 Iz1];
-parms.I2       = [Ix2 0 0;0 Iy2 0;0 0 Iz2];
-% - Uncomment when you want full symbolic expression -
+% % - Uncomment when you want full symbolic expression - 
+% syms m1 m2 Ix1 Iy1 Iz1 Ix2 Iy2 Iz2
+% parms.M        = diag([m1,m1,m1,m2,m2,m2]);
+% parms.I1       = [Ix1 0 0;0 Iy1 0;0 0 Iz1];
+% parms.I2       = [Ix2 0 0;0 Iy2 0;0 0 Iz2];
+% % - Uncomment when you want full symbolic expression -
 
 % Put in one state vector
 x               = [r1_I;r2_I];
@@ -310,8 +313,12 @@ F_ext           = [0;0;-parms.m1*parms.g;0;0;-parms.m2*parms.g;0;0;0;0;0;0];    
 G               = [Jx_dq*qd;omega_cross];
 Q_bar           = simplify(T_new.'*(F_ext-M_new*G) - parms.Q);
 
-% Calculate reesult expressed in generalized coordinates
-qdp             = M_bar\Q_bar;
+% Calculate result expressed in generalized coordinates
+if parms.accuracy_bool == 0
+    qdp             = inv(M_bar)*Q_bar;       % Less accurate but in our case faster
+else
+    qdp             = M_bar\Q_bar;            % More accurate but it is slow
+end
 
 % Get result back in COM coordinates
 xd              = Jx_q*qd;

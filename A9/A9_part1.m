@@ -3,6 +3,9 @@
 clear all; close all; %clc;
 fprintf('--- A9 ---\n');
 
+%% Script settings
+parms.accuracy_bool         = 0;            % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+
 %% Set up needed symbolic parameters
 % Create needed symbolic variables
 syms alpha beta gamma alpha_d beta_d gamma_d alpha_dd beta_dd gamma_dd
@@ -266,6 +269,14 @@ F               = Jx_q.'*(F_B-parms.M*Jx_dq*qd)-parms.Q;                 % Force
 
 % Calculate result expressed in generalized coordinates
 qdp             = M_bar\F;
+
+
+% Calculate result expressed in generalized coordinates
+if parms.accuracy_bool == 0
+    qdp             = inv(M_bar)*F;       % Less accurate but in our case faster
+else
+    qdp             = M_bar\F;            % More accurate but it is slow
+end
 
 % Get result back in COM coordinates
 xd              = Jx_q*qd;
