@@ -33,9 +33,9 @@ phi1    = 0.5*pi - alpha;
 x2      = l*sin(alpha);
 y2      = l*cos(alpha);
 phi2    = 0;
-x3      = l*sin(alpha) + 0.5*l*sin(0.5*pi + beta);
-y3      = l*cos(alpha) + 0.5*l*cos(0.5*pi + beta);
-phi3    = 0.5*pi + beta;
+x3      = l*sin(alpha) - 0.5*l*sin(beta);
+y3      = l*cos(alpha) - 0.5*l*cos(beta);
+phi3    = -(0.5*pi + beta);
 
 % Put in one state vector
 x       = [x1;y1;phi1;x2;y2;phi2;x3;y3;phi3];

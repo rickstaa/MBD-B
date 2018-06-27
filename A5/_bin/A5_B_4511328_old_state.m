@@ -40,13 +40,9 @@ phi3    = 0.5*pi + beta;
 % Put in one state vector
 x       = [x1;y1;phi1;x2;y2;phi2;x3;y3;phi3];
 
-% Impact constraint
-C       = [y2 - l*cos(0.5*pi + beta)];
-Jc_q    = simplify(jacobian(C,q.'));
-
 % Compute the jacobian of these expressions
 Jx_q    = simplify(jacobian(x,q.')); 
-    
+
 % Calculate derivative of the state vector
 xp      = Jx_q*qd;
 
@@ -56,9 +52,6 @@ F       = [m*g*sin(gamma), -m*g*cos(gamma), 0, M*g*sin(gamma), -M*g*cos(gamma), 
 T_qq    = simplify(jacobian(Jx_q*qd,q)*qd);
 Q       = simplify(Jx_q.'*(F.' - diag([m,m,I,M,M,0,m,m,I])*T_qq));
 
-A       = [M_bar Jc_q';
-           Jc_q z];
-       
 % Calculate result expressed in generalized coordinates
 if parms.accuracy_bool == 0
     qdd     = inv(M_bar)*Q;     % Less accurate but in our case faster

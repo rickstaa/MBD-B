@@ -34,15 +34,15 @@ phi1    = 0.5*pi - alpha;
 x2      = l*sin(alpha);
 y2      = l*cos(alpha);
 phi2    = 0;
-x3      = l*sin(alpha) + 0.5*l*sin(0.5*pi + beta);
-y3      = l*cos(alpha) + 0.5*l*cos(0.5*pi + beta);
-phi3    = 0.5*pi + beta;
+x3      = l*sin(alpha) - 0.5*l*sin(beta);
+y3      = l*cos(alpha) - 0.5*l*cos(beta);
+phi3    = -(0.5*pi + beta);
 
 % Put in one state vector
 x       = [x1;y1;phi1;x2;y2;phi2;x3;y3;phi3];
 
 % Impact constraint
-C       = l*cos(alpha) - l*cos(-beta);
+C       = l*cos(alpha) - l*cos(beta);
 Jc_q    = simplify(jacobian(C,q.'));
 
 % Compute the jacobian of these expressions
@@ -74,8 +74,14 @@ param = [0.75,3,9.81,5,0];                            % parms = [l,m,g,M,gamma];
 
 % Get result back in COM coordinates
 xdd     = simplify(jacobian(xp,qd.'))*qdd(1:2) + simplify(jacobian(xp,q.'))*qd;
-C_value = double(subs(C,[l,alpha,beta],[0.75,pi/6 -pi/6]));
+C_value = double(subs(C,[l,alpha,beta],[0.75,pi/6,-pi/6]));
 xdd     = subs(xdd, [l,m,g,M,gamma],param);
 xdd     = double(subs(xdd, [alpha,beta,alphap,betap],[x0]));
 disp(xdd)
 
+%% Calculate velocities in C
+qdd_value = double(subs(qdd, [l,m,g,M,gamma,alpha,beta,alphap,betap],[param,x0]));% Calculate numeric value of qdd = qd_after
+C_x       = l*sin(alpha)-l*sin(beta);
+Jx_q      = jacobian(C_x,q);
+x_cd      = Jx_q*qd;
+x_cd      = double(subs(x_cd,[l,m,g,M,gamma,alpha beta alphap betap],[param,pi/6 -pi/6  qdd_value(1) qdd_value(2)]));

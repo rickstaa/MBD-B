@@ -8,6 +8,7 @@ tic
 
 %% Script settings and parameters
 parms.accuracy_bool   = 0;                                  % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+e = 0;
 
 %% Parameters and variables
 % Initialise parameters and variables
@@ -63,11 +64,18 @@ T_qd    = simplify(jacobian(T,qd.')).';
 T_qd_qd  = simplify(jacobian(T_qd,qd.'));
 T_qd_q   = simplify(jacobian(T_qd,q.'));
 
+% Impact constraint
+C       = l*cos(alpha) - l*cos(beta);
+Jc_q    = simplify(jacobian(C,q.'));
+
+% Calculate M_big
+M_big = Jx_q.'*diag([m;m;I;M;M;0;m;m;I])*Jx_q;
+
 % Combine matrixes to get the lagrangian euqations of motion in matrix
 % vector form
 Qj       = 0;                                                  % Non-conservative forces
-Q        = T_qd_qd;
-F        = (-T_qd_q*qd + T_q - V_q + Qj);
+Q        = [M_big Jc_q.';Jc_q zeros(1,1)];
+F        = [M_big*qd;-e*Jc_q*qd];
 
 % Calculate result expressed in generalized coordinates
 if parms.accuracy_bool == 0
@@ -77,12 +85,19 @@ else
 end
 
 % Get result back in COM coordinates
-xdd     = simplify(jacobian(xd,qd.'))*qdd + simplify(jacobian(xd,q.'))*qd;
+xdd     = simplify(jacobian(xd,qd.'))*qdd(1:2) + simplify(jacobian(xd,q.'))*qd;
 
-%% Calculate for a initial state
-x0    = [deg2rad(30),deg2rad(45),-pi,0];
-parms = [0.8,12,9.81,36,pi/12];                            % parms = [l,m,g,M,gamma];
-xdd = subs(xdd, [l,m,g,M,gamma],parms);
-xdd = double(subs(xdd, [alpha,beta,alphap,betap],[x0]));
+%% Calculate velocites of COM after impact
+x0    = [pi/6,-pi/6,1.2,0.2];
+parms = [0.75,3,9.81,5,0];                            % parms = [l,m,g,M,gamma];
+xdd   = subs(xdd, [l,m,g,M,gamma],parms);
+xdd   = double(subs(xdd, [alpha,beta,alphap,betap],[x0]));
 disp(xdd)
 toc 
+
+%% Calculate velocities in C
+qdd_value = double(subs(qdd, [l,m,g,M,gamma,alpha,beta,alphap,betap],[parms,x0]));% Calculate numeric value of qdd = qd_after
+C_x       = l*sin(alpha)-l*sin(beta);
+Jx_q      = jacobian(C_x,q);
+x_cd      = Jx_q*qd;
+x_cd      = double(subs(x_cd,[l,m,g,M,gamma,alpha beta alphap betap],[parms,pi/6 -pi/6  qdd_value(1) qdd_value(2)]));
