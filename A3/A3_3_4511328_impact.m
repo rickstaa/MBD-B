@@ -5,6 +5,9 @@
 %  Last edit: 05/03/2018
 clear all; close all; % clc;
 
+%% Script parameters
+parms.accuracy_bool = 0;                                                 % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+
 %% Parameters
 % Segment 1
 parms.L     = 0.55;                                             % [m]
@@ -62,11 +65,7 @@ xdd             = double(vpa(xdd));
 M               = diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I]);
 K_be            = 0.5*x0'*M*x0;
 K_af            = 0.5*xdd(1:6)'*M*xdd(1:6);
-W            = 0.5*xdd(7:end)'*x0*(1-parms.e);
-disp(xdd)
-disp(K_be)
-disp(K_af)
-disp(W)
+W               = 0.5*xdd(7:end)'*x0*(1-parms.e);
 
 %% A: Create state space matrices for the case when we add a spring
 function [xdd] = state_calc(x0,parms,syst)
@@ -92,6 +91,12 @@ M = diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I]);
 A = [M Cx';Cx zeros(6,6)];
 F = [M*x0];
 b = [F;-parms.e*Cx*x0];
-xdd = A\b;
+
+% Calculate second derivative of the state
+if parms.accuracy_bool == 0 
+    xdd = inv(A)*b;         % Less accurate but in our case faster
+else
+    xdd=A\b;                % More accurate but it is slow
+end
 
 end

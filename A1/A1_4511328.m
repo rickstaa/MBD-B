@@ -1,8 +1,11 @@
 %% MBD_B: Assignment 1 - Double pendulum EOM using FBD and newton-euler
 %  Rick Staa (4511328)
 %  Last edit: 24/02/2018
-clear all; close all; clc;
+clear all; close all; clc;tic;
 fprintf('--- A1 ---\n');
+
+%% Script parameters
+parms.accuracy_bool = 0;                                     % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
 
 %% Parameters
 % Segment 1
@@ -48,6 +51,7 @@ y2_d         = y1_d + (parms.L1/2)*cos(x0(1))*x0(3) + (parms.L2/2)*cos(x0(2))*x0
 % Put in table
 results      = [x_dd.b x_dd.c x_dd.d];
 x_d.d        = [x1_d y1_d x2_d y2_d];
+toc;
 
 %% Functions
 
@@ -86,6 +90,9 @@ B           = [          1                  0           (L1/2)*sin(phi_1)       
                          0                 -1          -(L1/2)*cos(phi_1)         0         1  -(L2/2)*cos(phi_2)];
 
 % Calculate state out of Ax=b and the initial state
-x_dd = [M A;B zeros(size(B,1),size(A,2))]\b;
-
+if parms.accuracy_bool == 0
+    x_dd = inv([M A;B zeros(size(B,1),size(A,2))])*b;       % Less accurate but in our case faster
+else
+    x_dd = [M A;B zeros(size(B,1),size(A,2))]\b;            % More accurate but it is slow
+end
 end

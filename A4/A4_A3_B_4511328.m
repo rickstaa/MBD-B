@@ -7,7 +7,8 @@ fprintf('--- A4_a ---\n');
 fprintf('First lets redo A3 - In this case there are no constraints\n')
 
 %% Script settings and parameters
-variable              = {'x1dp' 'y1dp' 'phi1dp' 'x2dp' 'y2dp' 'phi2dp'}';
+parms.accuracy_bool   = 0;                                          % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+variables             = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
 
 %% Parameters
 % Segment 1
@@ -30,12 +31,18 @@ x0(2) = 0.5*pi;
 x0(3) = parms.omega;
 x0(4) = parms.omega;
 
-[xdd_tmp,Motor_torque] = state_calc(x0,parms);
-xdd.A3.b               = xdd_tmp;
-disp(table(variable,xdd.A3.b));
+[qdd_tmp, xdd_tmp, Motor_torque] = state_calc(x0,parms);
+xdd.A3.b               = double(xdd_tmp);
+qdd.A3.b               = double(qdd_tmp);
+disp(table(variables,xdd.A3.b));
+
+% Calculate additional info
+fprintf('\nThe result for A3 - a is:\n');
+disp(table(variables,xdd.A3.b));
+disp(table({'phi1dd','phi2dd','T_motor'}',qdd.A3.b));
 
 %% Compute the derivatives of constraint matrix
-function [xdd, Motor_torque] = state_calc(x0,parms)
+function [qdd, xdd, Motor_torque] = state_calc(x0,parms)
 % Create symbolic variables
 syms phi1 phi2 phi1d phi2d t
 
@@ -64,19 +71,23 @@ V = -([parms.m*parms.g 0 0 parms.m*parms.g 0 0]*x);
 
 %% Building the Lagrance equations of motion
 % See page 50
-Tqd = simplify(jacobian(T,qd'))';
-Tqdqd = simplify(jacobian(Tqd,qd'));
-Tqdq = simplify(jacobian(Tqd,q'))*qd;
-Tq = simplify(jacobian(T,q'))';
-Vq = simplify(jacobian(V,q'))';
-M = [Tqdqd Cq';Cq 0];
-F = [-Tqdq + Tq - Vq; -Cdd];
+Tqd             = simplify(jacobian(T,qd'))';
+Tqdqd           = simplify(jacobian(Tqd,qd'));
+Tqdq            = simplify(jacobian(Tqd,q'))*qd;
+Tq              = simplify(jacobian(T,q'))';
+Vq              = simplify(jacobian(V,q'))';
+M               = [Tqdqd Cq';Cq 0];
+F               = [-Tqdq + Tq - Vq; -Cdd];
 
-% Calculate acceleration
-qdd = M\F;
-qdd = (subs(qdd, [phi1,phi2,phi1d,phi2d],[x0(1),x0(2),x0(3),x0(4)]));
+% Solve Mqdp=F to get the accelerations
+if parms.accuracy_bool == 0 
+    qdd          = inv(M)*F;       % Less accurate but in our case faster
+else
+    qdd          = M\F;            % More accurate but it is slow
+end
 
 %% Express back in  CM coordinates
+qdd = (subs(qdd, [phi1,phi2,phi1d,phi2d],[x0(1),x0(2),x0(3),x0(4)]));
 xdd = simplify(jacobian(xd,qd'))*qdd(1:2) + simplify(jacobian(xd,q'))*qd;
 Motor_torque = double(qdd(3));
 xdd = double(subs(xdd, [phi1,phi2,phi1d,phi2d],[x0(1),x0(2),x0(3),x0(4)]));

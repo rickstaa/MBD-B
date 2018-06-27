@@ -5,7 +5,8 @@ clear all; close all; clc;
 fprintf('--- A2 ---\n');
 
 %% Script settings
-parms.booleans.ex_constr = 0;            % Put on 1 if you want to enable the extra constraint
+parms.accuracy_bool = 0;                                        % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+parms.booleans.ex_constr = 0;                                   % Put on 1 if you want to enable the extra constraint
 
 %% Parameters
 % Segment 1
@@ -143,6 +144,9 @@ A        = double(vpa(subs(A,{'phi1','phi2','phid1','phid2' 'm1' 'm2' 'I1' 'I2' 
 b        = double(vpa(subs(b,{'phi1','phi2','phid1','phid2' 'm1' 'm2' 'L1' 'L2' 'g'},[x0(1) x0(2) x0(3) x0(4) parms.m1 parms.m2 parms.L1 parms.L2 parms.g])));
 
 % Calculate second derivative
-xdd = A\b;
-
+if parms.accuracy_bool == 0
+    xdd = inv(A)*b;             % Less accurate but in our case faster
+else
+    xdd = A\b;                  % More accurate but it is slow
+end
 end

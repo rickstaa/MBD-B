@@ -5,6 +5,7 @@
 %% - - Pre processing operations --
 clear all; close all; clc;
 fprintf('--- A8 ---\n');
+animate_bool = 0;                           % Set on 1 if you want to see an animation
 
 % Set up needed symbolic parameters
 syms x1 y1 phi1 x2 y2 phi2 x1d y1d phi1d x2d y2d phi2d t
@@ -132,58 +133,61 @@ xdd                         = state_deriv(x,parms);
 [tw]                        = tw_calc(x,parms);
 
 %% -- ANIMATE --
-% Adapted from A. Schwab's animation code
-
-% Rename data
-X1 = x(:,1); Y1 = x(:,2); P1 = x(:,3);
-DX1 = x(:,7); DY1 = x(:,8); DP1 = x(:,9);
-X2 = x(:,4); Y2 = x(:,5); P2 = x(:,6);
-DX2 = x(:,10); DY2 = x(:,11); DP2 = x(:,12);
-
-% Rename Points
-XA = A(:,1); YA = A(:,2);
-XB = B(:,1); YB = B(:,2);
-XC = C(:,1); YC = C(:,2);
-
-% Create figure
-figure
-plot(X1,Y1)
-hold on
-plot(XA,YA)
-hold on
-plot(X2,Y2)
-hold on
-plot(XC,YC)
-grid on
-set(gca,'fontsize',16)
-title('Animation EzyRoller')
-axis([min(X1)-parms.a max(X1)+parms.a min(Y1)-parms.a max(Y1)+parms.a]);
-axis equal
-l = plot([X1(1) XA(1)],[Y1(1) YA(1)]);
-k = plot([X2(1) XC(1)],[Y2(1) YC(1)]);
-j = plot([X1(1) XB(1)],[Y1(1) YB(1)]);
-m = plot([XB(1) X2(1)],[YB(1) Y2(1)]);
-set(l,'LineWidth',5);
-set(l,'Color','K')
-set(k,'LineWidth',5);
-set(k,'Color','C')
-set(j,'LineWidth',5);
-set(j,'Color','K')
-set(m,'LineWidth',5);
-set(m,'Color','C')
-nstep = length(t);
-nskip = 10;
-for istep = 2:nskip:nstep
-    set(l,'XData',[X1(istep) XA(istep)])
-    set(l,'YData',[Y1(istep) YA(istep)])
-    set(k,'XData',[X2(istep) XC(istep)])
-    set(k,'YData',[Y2(istep) YC(istep)])
-    set(j,'XData',[X1(istep) XB(istep)])
-    set(j,'YData',[Y1(istep) YB(istep)])
-    set(m,'XData',[XB(istep) X2(istep)])
-    set(m,'YData',[YB(istep) Y2(istep)])
-    drawnow
-    pause(1e-10)
+if animate_bool == 1
+    % Adapted from A. Schwab's animation code
+    
+    % Rename data
+    X1 = x(:,1); Y1 = x(:,2); P1 = x(:,3);
+    DX1 = x(:,7); DY1 = x(:,8); DP1 = x(:,9);
+    X2 = x(:,4); Y2 = x(:,5); P2 = x(:,6);
+    DX2 = x(:,10); DY2 = x(:,11); DP2 = x(:,12);
+    
+    % Rename Points
+    XA = A(:,1); YA = A(:,2);
+    XB = B(:,1); YB = B(:,2);
+    XC = C(:,1); YC = C(:,2);
+    
+    % Create figure
+    figure
+    plot(X1,Y1)
+    hold on
+    plot(XA,YA)
+    hold on
+    plot(X2,Y2)
+    hold on
+    plot(XC,YC)
+    grid on
+    set(gca,'fontsize',16)
+    title('Animation EzyRoller')
+    axis([min(X1)-parms.a max(X1)+parms.a min(Y1)-parms.a max(Y1)+parms.a]);
+    axis equal
+    l = plot([X1(1) XA(1)],[Y1(1) YA(1)]);
+    k = plot([X2(1) XC(1)],[Y2(1) YC(1)]);
+    j = plot([X1(1) XB(1)],[Y1(1) YB(1)]);
+    m = plot([XB(1) X2(1)],[YB(1) Y2(1)]);
+    set(l,'LineWidth',5);
+    set(l,'Color','K')
+    set(k,'LineWidth',5);
+    set(k,'Color','C')
+    set(j,'LineWidth',5);
+    set(j,'Color','K')
+    set(m,'LineWidth',5);
+    set(m,'Color','C')
+    nstep = length(t);
+    nskip = 10;
+    for istep = 2:nskip:nstep
+        set(l,'XData',[X1(istep) XA(istep)])
+        set(l,'YData',[Y1(istep) YA(istep)])
+        set(k,'XData',[X2(istep) XC(istep)])
+        set(k,'YData',[Y2(istep) YC(istep)])
+        set(j,'XData',[X1(istep) XB(istep)])
+        set(j,'YData',[Y1(istep) YB(istep)])
+        set(m,'XData',[XB(istep) X2(istep)])
+        set(m,'YData',[YB(istep) Y2(istep)])
+        drawnow
+        pause(1e-10)
+    end
+    
 end
 
 %% - - Create plots - -
@@ -335,6 +339,7 @@ function [ekin] = ekin_calc(x,parms)
 ekin            = zeros(size(x,1),1);
 
 % Loop through states
+% State is x = [x1 y1 phi1 x2 y2 phi2 x1p y1p phi1p x2p y2p phi2p
 for ii = 1:size(x,1)
     ekin(ii,1) = 0.5*x(ii,7:9)*parms.M(1:3,1:3)*x(ii,7:9).';
     ekin(ii,2) = 0.5*x(ii,10:12)*parms.M(4:6,4:6)*x(ii,10:12).';

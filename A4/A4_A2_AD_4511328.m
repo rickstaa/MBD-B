@@ -7,7 +7,8 @@ fprintf('--- A4_a ---\n');
 fprintf('First lets redo A2 (a/d) - In this case there are no constraints\n')
 
 %% Script settings and parameters
-variable              = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
+parms.accuracy_bool   = 0;                                          % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+variables             = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
 
 %% Parameters
 % Segment 1
@@ -26,20 +27,20 @@ parms.g         = 9.81;                                             % [parms.m/s
 x0              = [0.5*pi 0.5*pi 0 0];
 xdd.A2.b        = double(state_calc(x0,parms));
 fprintf('\nThe result for A2 - b is:\n');
-disp(table(variable,xdd.A2.b));
+disp(table(variables,xdd.A2.b));
 
 % A2 - c
 x0              = [0 0 0 0];
 xdd.A2.c        = double(state_calc(x0,parms));
 fprintf('\nThe result for A2 - c is:\n');
-disp(table(variable,xdd.A2.c));
+disp(table(variables,xdd.A2.c));
 
 % A2 - d
 w               = (60/60)*2*pi;             % Convert to rad/s
 x0              = [0 0 w w];
 xdd.A2.d        = double(state_calc(x0,parms));
 fprintf('\nThe result for A2 - d is:\n');
-disp(table(variable,xdd.A2.d));
+disp(table(variables,xdd.A2.d));
 
 % Calculate velocities
 xd.d            = [-(parms.L/2)*sin(x0(1))*x0(3); ...
@@ -88,14 +89,18 @@ V_qd            = simplify(jacobian(V,qd));
 V_qdqd          = simplify(jacobian(V_qd,qd));
 
 % Make matrix vector product
-M                = T_qdqd;
-F                = Q + T_q' - V_q' - T_qdq*qd;
+M               = T_qdqd;
+F               = Q + T_q' - V_q' - T_qdq*qd;
 
 % Solve Mqdp=F to get the accelerations
-qdp              = M\F;
+if parms.accuracy_bool == 0 
+    qdd         = inv(M)*F;        % Less accurate but in our case faster
+else
+    qdd         = M\F;            % More accurate but it is slow
+end
 
 %% Get back to COM coordinates
-xdd              = simplify(jacobian(xd,qd))*qdp+simplify(jacobian(xd,q))*qd;
+xdd              = simplify(jacobian(xd,qd))*qdd+simplify(jacobian(xd,q))*qd;
 xdd              = subs(xdd,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)});
 
 end

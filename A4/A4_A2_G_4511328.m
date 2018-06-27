@@ -7,7 +7,8 @@ fprintf('--- A4_a ---\n');
 fprintf('Now lets redo A2 (g) - In this case we have a slider constraint and an extra constraint force B\n')
 
 %% Script settings and parameters
-variable        = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
+parms.accuracy_bool   = 0;                                          % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+variables             = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
 
 %% Parameters
 % Segment 1
@@ -26,7 +27,7 @@ parms.g         = 9.81;                                             % [parms.m/s
 x0              = [0 pi 0 0];
 xdd.A2.g           = double(state_calc(x0,parms));
 fprintf('\nThe result for A2 - g is:\n');
-disp(table(variable, xdd.A2.g));
+disp(table(variables, xdd.A2.g));
 
 
 %% Express COM in generalised coordinates
@@ -74,10 +75,14 @@ M                = T_qdqd;
 F                = Q + T_q' - V_q' - T_qdq*qd;
 
 % Solve Mqdp=F to get the accelerations
-qdp              = M\F;
+if parms.accuracy_bool == 0 
+    qdd          = inv(M)*F;        % Less accurate but in our case faster
+else
+    qdd          = M\F;            % More accurate but it is slow
+end
 
 %% Get back to COM coordinates
-xdd              = simplify(jacobian(xd,qd))*qdp+simplify(jacobian(xd,q))*qd;
+xdd              = simplify(jacobian(xd,qd))*qdd+simplify(jacobian(xd,q))*qd;
 xdd              = subs(xdd,{phi1 phi2 phi1p phi2p},{x0(1) x0(2) x0(3) x0(4)});
 
 end

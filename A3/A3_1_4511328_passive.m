@@ -5,6 +5,9 @@
 %  Last edit: 05/03/2018
 clear all; close all; % clc;
 
+%% Script parameters
+parms.accuracy_bool = 0;                                                 % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+
 %% Parameters
 % Segment 1
 parms.L     = 0.55;                                             % [m]
@@ -101,6 +104,12 @@ M = diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I]);
 A = [M Cx';Cx zeros(4,4)];
 F = [parms.m*parms.g 0 0 parms.m*parms.g 0 0]' - Csx*sigma; % Updated F vector
 b = [F;-Cdd];
-xdd = A\b;
+
+% Calculate second derivative of the state
+if parms.accuracy_bool == 0 
+    xdd = inv(A)*b;         % Less accurate but in our case faster
+else
+    xdd=A\b;                % More accurate but it is slow
+end
 
 end

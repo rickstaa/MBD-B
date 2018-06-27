@@ -7,7 +7,8 @@ fprintf('--- A4_a ---\n');
 fprintf('Now lets redo A3 - In this case there is an impact constrant\n')
 
 %% Script settings and parameters
-variable              = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
+parms.accuracy_bool   = 0;                                          % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+variables             = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
 
 %% Parameters
 % Segment 1
@@ -37,7 +38,7 @@ xdd.A3.c              = xdd_tmp;
 
 % Calculate additional info
 fprintf('\nThe result for A3 - (e = %0.1f) are:\n\n',parms.e);
-disp(table(variable,xdd.A3.c));
+disp(table(variables,xdd.A3.c));
 disp(table({'phi1dd','phi2dd','lambda1','lambda2'}',qdd.A3.c));
 
 %% Compute the derivatives of constraint matrix
@@ -68,10 +69,15 @@ Cq              = simplify(jacobian(C,q'));
 M               = Jx_q.'*diag([parms.m,parms.m,parms.I,parms.m,parms.m,parms.I])*Jx_q;                                                        % Reduced generalised M matrix
 M_big           = [M Cq.';Cq zeros(2,2)];                                                     % Full M matrix
 F               = [M*x0(3:4).'; -parms.e*Cq*x0(3:4).'];                                       % We need the initial velocities
-qdd             = M_big\F;                                                                    % This vector contains phi1dd, phi2dd, Lambda1 and lambda2
 
+% Solve Mqdp=F to get the accelerations
+if parms.accuracy_bool == 0 
+    qdd         = inv(M_big)*F;        % Less accurate but in our case faster
+else
+    qdd         = M_big\F;            % More accurate but it is slow
+end
 
-% Substitude initial state
+%% Get back to COM coordinates
 qdd             = double(subs(qdd, [phi1,phi2,phi1p,phi2p],[x0(1),x0(2),x0(3),x0(4)]));
 xdd             = simplify(jacobian(x,q'))*qdd(1:2);
 xdd             = double(subs(xdd, [phi1,phi2,phi1p,phi2p],[x0(1),x0(2),x0(3),x0(4)]));       % Impact velocities

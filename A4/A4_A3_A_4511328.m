@@ -7,7 +7,8 @@ fprintf('--- A4_a ---\n');
 fprintf('Now lets redo A3 (a) - In this case we have a passive element\n')
 
 %% Script settings and parameters
-variable              = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
+parms.accuracy_bool   = 0;                                          % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+variables             = {'x1dd' 'y1dd' 'phi1dd' 'x2dd' 'y2dd' 'phi2dd'}';
 
 %% Parameters
 % Segment 1
@@ -29,8 +30,8 @@ x0                 = [0.5*pi 0.5*pi 0 0];
 xdd.A3.a           = double(xdd_tmp);
 qdd.A3.a           = double(qdd_tmp);
 fprintf('\nThe result for A3 - a is:\n');
-disp(table(variable,xdd.A3.a));
-disp(table({'phi1dd','phi2dd','lambda1','lambda2'}',qdd.A3.a));
+disp(table(variables,xdd.A3.a));
+disp(table({'phi1dd','phi2dd'}',qdd.A3.a));
 
 %% Express COM in generalised coordinates
 function [qdd, xdd] = state_calc(x0,parms)
@@ -83,7 +84,11 @@ M                = T_qdqd;
 F                = Q + T_q' - V_q' - T_qdq*qd;
 
 % Solve Mqdp=F to get the accelerations
-qdd              = M\F;
+if parms.accuracy_bool == 0 
+    qdd          = inv(M)*F;        % Less accurate but in our case faster
+else
+    qdd          = M\F;            % More accurate but it is slow
+end
 
 %% Get back to COM coordinates
 qdd              = double(subs(qdd, [phi1,phi2,phi1p,phi2p],[x0(1),x0(2),x0(3),x0(4)]));

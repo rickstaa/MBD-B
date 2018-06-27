@@ -7,6 +7,8 @@ clear all; close all; clc;
 fprintf('--- A6 ---\n');
 
 %% Set up needed symbolic parameters
+parms.accuracy_bool   = 0;                                          % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+
 % Create needed symbolic variables
 syms phi1 phi2 phi1p phi2p
 
@@ -45,132 +47,132 @@ EOM_calc(parms);                                                           % Cal
 % 4). Runge-Kutta 4th order (RK4)
 
 tic
-% %% Euler intergration
-% % Calculate the error per step size for euler
-% 
-% % Loop h and calculate global error
-% n_range   = 6:1:25;
-% h_range   = time./(2.^n_range);
-% q_end_h_euler   = zeros(length(h_range),6);
-% for kk = 1:length(h_range)
-%     parms.h                       = h_range(kk);
-%     [t,q]                         = ODE_custom(time,q0,'euler',parms);
-%     % bar_animate(t,q,parms);                                                               % Animate Bar
-%     q_end_h_euler(kk,:)           = q(end,:);
-% end
-% glob_error                        = abs(q_end_h_euler(2:end,:)-q_end_h_euler(1:end-1,:));   % Calculate global error
-% 
-% % Create error plot
-% figure;
-% loglog(h_range(1:end-1),glob_error(:,1),'Color','red','LineWidth',1);hold on;
-% loglog(h_range(1:end-1),glob_error(:,2),'Color','blue','LineWidth',1);hold on;
-% line(xlim,[10e-6 10e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
-% legend('\phi_1','\phi_2','Max error','Location', 'Best');
-% title('Euler numerical error');
-% xlabel('Global error [rad]')
-% ylabel('Intergration step size [s]')
+%% Euler intergration
+% Calculate the error per step size for euler
 
-% %% Heun intergration
-% % Calculate the error per step size for heun
-% % Calculate the error per step size for euler
-% 
-% % Loop h and calculate global error
-% n_range   = 6:1:20;
-% h_range   = time./(2.^n_range);
-% q_end_h_heun   = zeros(length(h_range),6);
-% for kk = 1:length(h_range)
-%     parms.h                       = h_range(kk);
-%     [t,q]                         = ODE_custom(time,q0,'heun',parms);
-%     % bar_animate(t,q,parms);                                                             % Animate Bar
-%     q_end_h_heun(kk,:)            = q(end,:);
-% end
-% glob_error_heun                   = abs(q_end_h_heun(2:end,:)-q_end_h_heun(1:end-1,:));   % Calculate global error
-% 
-% % Create error plot
-% figure;
-% loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_heun(:,1)'),'Color','red','LineWidth',1);hold on;
-% loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_heun(:,2)'),'Color','blue','LineWidth',1);hold on;
-% line(xlim,[10e-6 10e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
-% legend('\phi_1','\phi_2','Max error','Location', 'Best');
-% title('Heun numerical error');
-% xlabel('Global error [rad]')
-% ylabel('Intergration step size [s]')
+% Loop h and calculate global error
+n_range   = 6:1:25;
+h_range   = time./(2.^n_range);
+q_end_h_euler   = zeros(length(h_range),6);
+for kk = 1:length(h_range)
+    parms.h                       = h_range(kk);
+    [t,q]                         = ODE_custom(time,q0,'euler',parms);
+    % bar_animate(t,q,parms);                                                               % Animate Bar
+    q_end_h_euler(kk,:)           = q(end,:);
+end
+glob_error                        = abs(q_end_h_euler(2:end,:)-q_end_h_euler(1:end-1,:));   % Calculate global error
 
-% %% Runge-Kutta 3th order (RK3)
-% % Calculate the error per step size for RK3
-% 
-% % Loop h and calculate global error
-% n_range   = 6:1:20;
-% h_range   = time./(2.^n_range);
-% q_end_h_RK3   = zeros(length(h_range),6);
-% for kk = 1:length(h_range)
-%     parms.h                       = h_range(kk);
-%     [t,q]                         = ODE_custom(time,q0,'RK3',parms);
-%     % bar_animate(t,q,parms);                                                             % Animate Bar
-%     q_end_h_RK3(kk,:)            = q(end,:);
-% end
-% glob_error_RK3                   = abs(q_end_h_RK3(2:end,:)-q_end_h_RK3(1:end-1,:));      % Calculate global error
-% 
-% % Create error plot
-% figure;
-% loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK3(:,1)'),'Color','red','LineWidth',1);hold on;
-% loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK3(:,2)'),'Color','blue','LineWidth',1);hold on;
-% line(xlim,[10e-6 10e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
-% legend('\phi_1','\phi_2','Max error','Location', 'Best');
-% title('RK3 numerical error');
-% xlabel('Global error [rad]')
-% ylabel('Intergration step size [s]')
+% Create error plot
+figure;
+loglog(h_range(1:end-1),glob_error(:,1),'Color','red','LineWidth',1);hold on;
+loglog(h_range(1:end-1),glob_error(:,2),'Color','blue','LineWidth',1);hold on;
+line(xlim,[1e-6 1e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
+legend('\phi_1','\phi_2','Max error','Location', 'Best');
+title('Euler numerical error');
+xlabel('Global error [rad]')
+ylabel('Intergration step size [s]')
 
-% %% Runge-Kutta 4th order (RK4)
-% % Calclate the error per step size for RK4
-% 
-% % Loop h and calculate global error
-% n_range   = 6:1:20;
-% h_range   = time./(2.^n_range);
-% q_end_h_RK4   = zeros(length(h_range),6);
-% for kk = 1:length(h_range)
-%     parms.h                       = h_range(kk);
-%     [t,q]                         = ODE_custom(time,q0,'RK4',parms);
-%     % bar_animate(t,q,parms);                                                             % Animate Bar
-%     q_end_h_RK4(kk,:)            = q(end,:);
-% end
-% glob_error_RK4                   = abs(q_end_h_RK4(2:end,:)-q_end_h_RK4(1:end-1,:));      % Calculate global error
-% 
-% % Create error plot
-% figure;
-% loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK4(:,1)'),'Color','red','LineWidth',1);hold on;
-% loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK4(:,2)'),'Color','blue','LineWidth',1);hold on;
-% line(xlim,[10e-6 10e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
-% legend('\phi_1','\phi_2','Max error','Location', 'Best');
-% title('RK4 numerical error');
-% xlabel('Global error [rad]')
-% ylabel('Intergration step size [s]')
-% toc;
+%% Heun intergration
+% Calculate the error per step size for heun
+% Calculate the error per step size for euler
+
+% Loop h and calculate global error
+n_range   = 6:1:20;
+h_range   = time./(2.^n_range);
+q_end_h_heun   = zeros(length(h_range),6);
+for kk = 1:length(h_range)
+    parms.h                       = h_range(kk);
+    [t,q]                         = ODE_custom(time,q0,'heun',parms);
+    % bar_animate(t,q,parms);                                                             % Animate Bar
+    q_end_h_heun(kk,:)            = q(end,:);
+end
+glob_error_heun                   = abs(q_end_h_heun(2:end,:)-q_end_h_heun(1:end-1,:));   % Calculate global error
+
+% Create error plot
+figure;
+loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_heun(:,1)'),'Color','red','LineWidth',1);hold on;
+loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_heun(:,2)'),'Color','blue','LineWidth',1);hold on;
+line(xlim,[1e-6 1e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
+legend('\phi_1','\phi_2','Max error','Location', 'Best');
+title('Heun numerical error');
+xlabel('Global error [rad]')
+ylabel('Intergration step size [s]')
+
+%% Runge-Kutta 3th order (RK3)
+% Calculate the error per step size for RK3
+
+% Loop h and calculate global error
+n_range   = 6:1:20;
+h_range   = time./(2.^n_range);
+q_end_h_RK3   = zeros(length(h_range),6);
+for kk = 1:length(h_range)
+    parms.h                       = h_range(kk);
+    [t,q]                         = ODE_custom(time,q0,'RK3',parms);
+    % bar_animate(t,q,parms);                                                             % Animate Bar
+    q_end_h_RK3(kk,:)            = q(end,:);
+end
+glob_error_RK3                   = abs(q_end_h_RK3(2:end,:)-q_end_h_RK3(1:end-1,:));      % Calculate global error
+
+% Create error plot
+figure;
+loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK3(:,1)'),'Color','red','LineWidth',1);hold on;
+loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK3(:,2)'),'Color','blue','LineWidth',1);hold on;
+line(xlim,[1e-6 1e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
+legend('\phi_1','\phi_2','Max error','Location', 'Best');
+title('RK3 numerical error');
+xlabel('Global error [rad]')
+ylabel('Intergration step size [s]')
+
+%% Runge-Kutta 4th order (RK4)
+% Calclate the error per step size for RK4
+
+% Loop h and calculate global error
+n_range   = 6:1:20;
+h_range   = time./(2.^n_range);
+q_end_h_RK4   = zeros(length(h_range),6);
+for kk = 1:length(h_range)
+    parms.h                       = h_range(kk);
+    [t,q]                         = ODE_custom(time,q0,'RK4',parms);
+    % bar_animate(t,q,parms);                                                             % Animate Bar
+    q_end_h_RK4(kk,:)            = q(end,:);
+end
+glob_error_RK4                   = abs(q_end_h_RK4(2:end,:)-q_end_h_RK4(1:end-1,:));      % Calculate global error
+
+% Create error plot
+figure;
+loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK4(:,1)'),'Color','red','LineWidth',1);hold on;
+loglog(fliplr(h_range(1:end-1)),fliplr(glob_error_RK4(:,2)'),'Color','blue','LineWidth',1);hold on;
+line(xlim,[1e-6 1e-6],'Color',[1 0.6471 0],'LineStyle','--','LineWidth',1);
+legend('\phi_1','\phi_2','Max error','Location', 'Best');
+title('RK4 numerical error');
+xlabel('Global error [rad]')
+ylabel('Intergration step size [s]')
+toc;
 
 %% Perform methods at maxstepsize
-% %% Euler method at step-size 1e-5
-% tic
-% parms.h = 1e-5;
-% [t_euler,q_euler]                       = ODE_custom(time,q0,'euler',parms);
-% toc
-% 
-% %% Heun method at step-size 1e-5
-% tic
-% parms.h = 2.5e-5;
-% [t_heun,q_heun]                         = ODE_custom(time,q0,'heun',parms);
-% toc
-% 
-% %% Runge-Kutta 3th order (RK4)
-% tic
-% parms.h = 4e-4;
-% [t_RK3,q_RK3]                           = ODE_custom(time,q0,'RK3',parms);
-% toc
-% 
-% %% Runge-Kutta 4th order (RK4)
-% tic
-% parms.h = 2e-3;
-% [t_RK4,q_RK4]                           = ODE_custom(time,q0,'RK4',parms);
-% toc
+%% Euler method at step-size 1e-5
+tic
+parms.h = 1e-5;
+[t_euler,q_euler]                       = ODE_custom(time,q0,'euler',parms);
+toc
+
+%% Heun method at step-size 1e-5
+tic
+parms.h = 2.5e-5;
+[t_heun,q_heun]                         = ODE_custom(time,q0,'heun',parms);
+toc
+
+%% Runge-Kutta 3th order (RK4)
+tic
+parms.h = 4e-4;
+[t_RK3,q_RK3]                           = ODE_custom(time,q0,'RK3',parms);
+toc
+
+%% Runge-Kutta 4th order (RK4)
+tic
+parms.h = 2e-3;
+[t_RK4,q_RK4]                           = ODE_custom(time,q0,'RK4',parms);
+toc
 
 %% Calculate motion withODE functions
 % ODE 23
@@ -406,7 +408,11 @@ M                   = T_qpqp;
 F                   = Q + T_q.' - V_q.' - T_qpq*qp;
 
 % Solve Mqdp=F to get the accelerations
-qdp                 = M\F;
+if parms.accuracy_bool == 0 
+    qdp                 = inv(M)*F; % Less accurate but in our case faster
+else
+    qdp                 = M\F;   More accurate but it is slow
+end
 
 %% Get back to COM coordinates
 % xdp              = simplify(jacobian(xp,qp))*qdp+simplify(jacobian(xp,q))*qp;
