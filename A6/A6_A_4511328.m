@@ -3,7 +3,7 @@
 %  Last edit: 02/05/2018
 %  In this script I append the acceleration to the generalised state q so
 %  q = [phi1 phi2 phi1p phi2p phi1dp phi2dp]. This was done to save space.
-clear all; close all; clc;
+clear all; close all; %clc;
 fprintf('--- A6 ---\n');
 
 %% Set up needed symbolic parameters

@@ -1,7 +1,7 @@
 %% MBD_B: Assignment 2 - Double pendulum systemetic approach
 %  Rick Staa (4511328)
 %  Last edit: 05/03/2018
-clear all; close all; clc;
+clear all; close all; % clc;
 fprintf('--- A2 ---\n');
 
 %% Script settings

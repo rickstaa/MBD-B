@@ -1,6 +1,6 @@
 %% MBD_B: Assignment 9 - Euler angles and the human arm
 %  Rick Staa (4511328)
-%clear all; close all; clc;
+clear all; close all; %clc;
 fprintf('--- A9 ---\n');
 
 %% Set up needed symbolic parameters

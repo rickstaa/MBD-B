@@ -2,7 +2,7 @@
 %  Rick Staa (4511328)
 %  Last edit: 27/03/2018
 % - Question A: Lagrange method -
-clear all; close all; clc;
+clear all; close all; %clc;
 fprintf('--- A5_b ---\n');
 tic
 

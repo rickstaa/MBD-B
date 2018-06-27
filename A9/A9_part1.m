@@ -1,6 +1,6 @@
 %% MBD_B: Assignment 9 - Euler angles and the human arm
 %  Rick Staa (4511328)
-clear all; close all; clc;
+clear all; close all; %clc;
 fprintf('--- A9 ---\n');
 
 %% Set up needed symbolic parameters
@@ -46,7 +46,7 @@ q0                          = [alpha_0;beta_0;gamma_0;alpha_d_0;beta_d_0;gamma_d
 torque_calc(parms);
 q0_tmp                      = num2cell(q0',1);
 parms.Q                     = subs_torque(q0_tmp{:});
-% parms.Q                     = [-11.2669 4.0831 -5.5077].';
+% parms.Q                   = [-11.2669 4.0831 -5.5077].';
 
 %% Derive equation of motion
 EOM_calc(parms);                                                                         % Calculate symbolic equations of motion and put in parms struct

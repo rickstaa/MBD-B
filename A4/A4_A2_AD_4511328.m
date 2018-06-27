@@ -2,7 +2,7 @@
 %  Rick Staa (4511328)
 %  Last edit: 19/03/2018
 % Question A: Redoo assignment 2
-clear all; close all; clc;
+clear all; close all; %clc;
 fprintf('--- A4_a ---\n');
 fprintf('First lets redo A2 (a/d) - In this case there are no constraints\n')
 

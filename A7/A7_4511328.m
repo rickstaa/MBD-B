@@ -1,12 +1,12 @@
 %% MBD_B: Assignment 7 - Quick return mechanism
 %  Rick Staa (4511328)
 %  Last edit: 09/05/2018
-clear all; % close all; clc;
+clear all;tic; close all; % clc;
 fprintf('--- A7 ---\n');
 
 %% Script parameters
 parms.accuracy_bool = 0;                    % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
-animate_bool = 1;                           % Set on 1 if you want to see an animation
+animate_bool = 0;                           % Set on 1 if you want to see an animation
 
 %% Set up needed symbolic parameters
 % Create needed symbolic variables
@@ -59,10 +59,15 @@ parms.F                     = [parms.T2, 0, -parms.m3*parms.g, 0, 0, -parms.m4*p
 parms.Q                     = [0;0;0];                                  % The generalised forces and torques
 
 %% Calculate Initial states
+% Set the independent states
 phi2_init                   = 0;
-phi4_init                   = atan2(parms.O4O2,parms.O2A);
-phi5_init                   = pi-asin((parms.Yc-parms.O4B*sin(phi4_init))/parms.BC);
 phi2d_init                  = (150*pi)/60;
+
+% Calculate the dependen states
+x3_init                     = parms.O2A*cos(phi2_init);                                               % Calculate the x coordinate of slider 3
+y3_init                     = parms.O4O2+parms.O2A*sin(phi2_init);                                    % Calculate the y coordinate of slider 3
+phi4_init                   = atan2(y3_init,x3_init);
+phi5_init                   = pi-asin((parms.Yc-parms.O4B*sin(phi4_init))/parms.BC);
 phi4d_init                  = cos(phi4_init)^2*phi2d_init;                                       % Not real value but failed to calculate
 phi5d_init                  = (parms.O4B*cos(phi4_init)*phi4d_init)/(-parms.BC*cos(phi5_init));  % Not real value but failed to calculate
 q0                          = [phi2_init phi4_init phi5_init phi2d_init phi4d_init phi5d_init];
@@ -71,9 +76,7 @@ q0                          = [phi2_init phi4_init phi5_init phi2d_init phi4d_in
 EOM_calc(parms);                                                        % Calculate symbolic equations of motion and put in parms struct
 
 %% Calculate movement by mean sof a Runge-Kuta 4th order intergration method
-tic
 [t_RK4,q_RK4,x_RK4,xdp_RK4]                         = RK4_custom(q0,parms);
-toc
 
 %% Calculate com velocities
 xp = diff(x_RK4)/parms.h;
@@ -131,6 +134,7 @@ xlabel('Time [s]');
 ylabel('Force [N]');
 title('Reaction Forces [N]');
 legend('slider 6 on ground','slider 3 on rocker 4','Location', 'Best')
+toc
 
 %% -- ANIMATE --
 if animate_bool == 1

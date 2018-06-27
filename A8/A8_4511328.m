@@ -3,10 +3,15 @@
 %  Last edit: 29/05/2018
 
 %% - - Pre processing operations --
-clear all; close all; clc;
+clear all; close all; % clc;
 fprintf('--- A8 ---\n');
 animate_bool = 0;                           % Set on 1 if you want to see an animation
 
+%% Script settings
+parms.accuracy_bool         = 0;            % If set to 1 A\b will be performed instead of inv(A)*B this is more accurate but slower
+parms.question_bool         = 1;            % Set on 0 for the first part of the question and 1 for the second part
+
+%% Model parameters
 % Set up needed symbolic parameters
 syms x1 y1 phi1 x2 y2 phi2 x1d y1d phi1d x2d y2d phi2d t
 
@@ -58,57 +63,59 @@ parms.omega                 = pi;
 % Gravity
 parms.g                     = 9.81;                                     % [parms.m/s^2]
 
-% %% states for Question 1
-% x1_0                        = parms.a;
-% y1_0                        = 0;
-% phi1_0                      = 0;
-% x2_0                        = parms.a+parms.b;
-% y2_0                        = parms.d;
-% phi2_0                      = pi/2;
-%
-% % Phi1d
-% x1d_0                       = 1;
-% y1d_0                       = 0;
-% phi1d_0                     = 0;
-% x2d_0                       = 0;
-% y2d_0                       = 1;
-% phi2d_0                     = 0;
-%
-% % Set forces
-% F                           = [0 0 0 0 0 0].';                        % No torque applied
-% parms.F                     = F;
-% x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
-
-%% States Question 2
-% In this the generalised coordinates x1_init and y1_init are assumed to be
-% defined so that wheel 1 is in the origin.
-phi1_0                      = 0;                                        % Angle of first body with horizontal
-phi2_0                      = pi;                                       % Angle of second body with horizontal
-
-% Calculate other dependent initial positions and angles
-x1_0                        = parms.a*cos(phi1_0);
-y1_0                        = parms.b*sin(phi1_0);
-x2_0                        = (parms.a+parms.b)*cos(phi1_0)+parms.d*cos(phi2_0);
-y2_0                        = (parms.a+parms.b)*sin(phi1_0)+parms.d*sin(phi2_0);
-
-% Velocity initital states (Make sure that the are admissable)
-% Phi1d
-x1d_0                       = 0;
-y1d_0                       = 0;
-phi1d_0                     = 0;
-x2d_0                       = 0;
-y2d_0                       = 0;
-phi2d_0                     = 0;
-
-% Create full state for optimization
-x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
-
-%% Set Forces and torques
-% F=[F1_x,F1_y,M1,F2_x,F2_y,M2];
-F                           = [0 0 -parms.M0*cos(parms.omega*t) 0 0 parms.M0*cos(parms.omega*t)].';                            % Torque applied
-
-% Store F in function
-parms.F                     = F;
+if parms.question_bool == 0
+    %% states for Question 1
+    x1_0                        = parms.a;
+    y1_0                        = 0;
+    phi1_0                      = 0;
+    x2_0                        = parms.a+parms.b;
+    y2_0                        = parms.d;
+    phi2_0                      = pi/2;
+    
+    % Phi1d
+    x1d_0                       = 1;
+    y1d_0                       = 0;
+    phi1d_0                     = 0;
+    x2d_0                       = 0;
+    y2d_0                       = 1;
+    phi2d_0                     = 0;
+    
+    % Set forces
+    F                           = [0 0 0 0 0 0].';                        % No torque applied
+    parms.F                     = F;
+    x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
+else
+    %% States Question 2
+    % In this the generalised coordinates x1_init and y1_init are assumed to be
+    % defined so that wheel 1 is in the origin.
+    phi1_0                      = 0;                                        % Angle of first body with horizontal
+    phi2_0                      = pi;                                       % Angle of second body with horizontal
+    
+    % Calculate other dependent initial positions and angles
+    x1_0                        = parms.a*cos(phi1_0);
+    y1_0                        = parms.b*sin(phi1_0);
+    x2_0                        = (parms.a+parms.b)*cos(phi1_0)+parms.d*cos(phi2_0);
+    y2_0                        = (parms.a+parms.b)*sin(phi1_0)+parms.d*sin(phi2_0);
+    
+    % Velocity initital states (Make sure that the are admissable)
+    % Phi1d
+    x1d_0                       = 0;
+    y1d_0                       = 0;
+    phi1d_0                     = 0;
+    x2d_0                       = 0;
+    y2d_0                       = 0;
+    phi2d_0                     = 0;
+    
+    % Create full state for optimization
+    x0                          = [x1_0 y1_0 phi1_0 x2_0 y2_0 phi2_0 x1d_0 y1d_0 phi1d_0 x2d_0 y2d_0 phi2d_0];
+    
+    % Set Forces and torques
+    % F=[F1_x,F1_y,M1,F2_x,F2_y,M2];
+    F                           = [0 0 -parms.M0*cos(parms.omega*t) 0 0 parms.M0*cos(parms.omega*t)].';                            % Torque applied
+    
+    % Store F in function
+    parms.F                     = F;
+end
 
 %% -- Derive equation of motion --
 %% Calculate EOM by means of Newton-Euler equations
@@ -358,9 +365,16 @@ tw              = zeros(size(x,1),1);
 time            = 0:parms.h:((parms.h*size(x,1))-parms.h);
 
 % Create W vector
-for ii = (2:size(x,1))
-    tw(ii)     = tw(ii-1) + sum((subs_F(time(ii))).'.*(x(ii,1:6)-x((ii-1),1:6)));
+if parms.question_bool == 0
+    for ii = (2:size(x,1))
+        tw(ii)     = tw(ii-1) + sum(subs_F.'.*(x(ii,1:6)-x((ii-1),1:6)));
+    end  
+else
+    for ii = (2:size(x,1))
+        tw(ii)     = tw(ii-1) + sum((subs_F(time(ii))).'.*(x(ii,1:6)-x((ii-1),1:6)));
+    end
 end
+
 end
 
 %% Runge-Kuta numerical intergration function
@@ -585,7 +599,11 @@ A = [parms.M JC_x.' D.'                                                     ; ..
 B = [parms.F ;-JC_xd*xd;-JD_xd*xd];
 
 % Calculate result expressed in generalized coordinates
-xdd             = A\B;
+if parms.accuracy_bool == 0
+    xdd             = inv(A)*B;       % Less accurate but in our case faster
+else
+    xdd             = A\B;            % More accurate but it is slow
+end
 
 %% Convert to function handles
 matlabFunction(simplify(xdd),'vars',[x1 y1 phi1 x2 y2 phi2],'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d t],'File','subs_xdd');
@@ -603,6 +621,11 @@ matlabFunction(simplify(D_x),'vars',[phi1 phi2 x1d y1d phi1d x2d y2d phi2d],'Fil
 matlabFunction(simplify(JD_x),'File','subs_Dd');
 
 % Force torque volocity handle
-matlabFunction(parms.F,'File','subs_F');
+if parms.question_bool == 0
+    parms.F = sym(parms.F);
+    matlabFunction(parms.F,'File','subs_F');
+else
+    matlabFunction(parms.F,'File','subs_F');
+end
 
 end
