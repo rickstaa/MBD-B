@@ -1,4 +1,4 @@
-# MBD_B
+# MBD-B
 
 This repository contains the answers to the code exercises of the course MBDB. As far as I know all the answers except H10 are correct.
 
